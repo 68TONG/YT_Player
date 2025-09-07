@@ -1,0 +1,32 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Resource_UI/clip_logo.png</file>
+        <file>Resource_UI/close.png</file>
+        <file>Resource_UI/edit_logo.png</file>
+        <file>Resource_UI/file_logo.png</file>
+        <file>Resource_UI/full_screen.png</file>
+        <file>Resource_UI/full_screen_close.png</file>
+        <file>Resource_UI/history.png</file>
+        <file>Resource_UI/logo.png</file>
+        <file>Resource_UI/minimize.png</file>
+        <file>Resource_UI/movie_logo.png</file>
+        <file>Resource_UI/music_logo.png</file>
+        <file>Resource_UI/next.png</file>
+        <file>Resource_UI/next_page.png</file>
+        <file>Resource_UI/ok.png</file>
+        <file>Resource_UI/operate.png</file>
+        <file>Resource_UI/picture_logo.png</file>
+        <file>Resource_UI/play_list.png</file>
+        <file>Resource_UI/playing.png</file>
+        <file>Resource_UI/previous.png</file>
+        <file>Resource_UI/previous_page.png</file>
+        <file>Resource_UI/search_logo.png</file>
+        <file>Resource_UI/stoping.png</file>
+        <file>Resource_UI/task_logo.png</file>
+        <file>Resource_UI/volume.png</file>
+        <file>Resource_UI/volume_0.png</file>
+        <file>Resource_UI/list_loop.png</file>
+        <file>Resource_UI/shuffle.png</file>
+        <file>Resource_UI/single_loop.png</file>
+    </qresource>
+</RCC>
