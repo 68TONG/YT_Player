@@ -1,60 +1,56 @@
-#ifndef YT_CONFIGUREINFO_H
-#define YT_CONFIGUREINFO_H
+#ifndef YT_INFO_H
+#define YT_INFO_H
 
 #include <YT_GeneralH.h>
 
-class YT_ConfigureInfo : public QObject
+#define YT_PROPERTY_AUTO(T, P)                  \
+    Q_PROPERTY(T P MEMBER P NOTIFY P##Changed)  \
+    T P;                                        \
+    Q_SIGNAL void P##Changed();                 \
+    static const char *P##Name() { return #P; } \
+    static QMetaType P##Type() { return QMetaType::fromType<T>(); }
+
+class YT_Info : public QObject
 {
     Q_OBJECT
     QML_ELEMENT
     QML_SINGLETON
 
-    explicit YT_ConfigureInfo(QObject *parent = nullptr);
-    ~YT_ConfigureInfo();
+    explicit YT_Info(QObject *parent = nullptr);
+    ~YT_Info();
+
 public:
-    enum InfoFlags
-    {
-        FontColor,
-        ItemColor,
-        ItemFocusColor,
-        BackgroundColor,
+    static YT_Info &getObject();
+    static YT_Info *create(QQmlEngine *, QJSEngine *);
+    
+    YT_PROPERTY_AUTO(QColor, FontColor);
+    YT_PROPERTY_AUTO(QColor, FontFocusColor);
 
-        ItemRadius,
-        ItemRadius_Big,
-        ItemRadius_Small,
+    YT_PROPERTY_AUTO(QColor, ItemColor);
+    YT_PROPERTY_AUTO(QColor, ItemFocusColor);
+    YT_PROPERTY_AUTO(QColor, BackgroundColor);
 
-        MusicListInfoID_List,
+    YT_PROPERTY_AUTO(QSize, ItemSize);
+    YT_PROPERTY_AUTO(QSize, ItemSizeBig);
+    YT_PROPERTY_AUTO(QSize, ItemSizeSmall);
 
-        InfoFlags_End
-    };
-    Q_ENUM(InfoFlags)
+    YT_PROPERTY_AUTO(int, Radius);
+    YT_PROPERTY_AUTO(int, RadiusBig);
+    YT_PROPERTY_AUTO(int, RadiusSmall);
 
-    static YT_ConfigureInfo &getObject();
-    static YT_ConfigureInfo *create(QQmlEngine *, QJSEngine *);
+    YT_PROPERTY_AUTO(int, Spacing);
+    YT_PROPERTY_AUTO(int, SpacingBig);
+    YT_PROPERTY_AUTO(int, SpacingSmall);
 
-    Q_INVOKABLE QVariant getData(const InfoFlags index) const;
-    Q_INVOKABLE void setData(const InfoFlags index, const QVariant &data);
+    YT_PROPERTY_AUTO(int, Margin);
+    YT_PROPERTY_AUTO(int, MarginBig);
+    YT_PROPERTY_AUTO(int, MarginSmall);
 
-    Q_INVOKABLE void transformWindow(QWindow *window, int type);
+    YT_PROPERTY_AUTO(QVariantList, MusicListInfo_ID_List);
+
 private:
-    static YT_ConfigureInfo object;
-
-    void initConfigureInfo_Data();
-    void saveConfigureInfo_Data();
-    QList<QVariant> configureInfo_Data;
-    const QString configureInfo_DataPath = "./YT_OutData/ConfigureInfo_Data.json";
-    const QMap<InfoFlags, QString> InfoFlags_Map = {
-        {FontColor, "FontColor"},
-        {ItemColor, "ItemColor"},
-        {ItemFocusColor, "ItemFocusColor"},
-        {BackgroundColor, "BackgroundColor"},
-
-        {ItemRadius, "ItemRadius"},
-        {ItemRadius_Big, "ItemRadius_Big"},
-        {ItemRadius_Small, "ItemRadius_Small"},
-        {MusicListInfoID_List, "MusicListInfoID_List"}
-    };
-signals:
+    static YT_Info object;
+    const QString InfoPath = "./YT_PlayerData/Info.json";
 };
 
-#endif // YT_CONFIGUREINFO_H
+#endif // YT_INFO_H

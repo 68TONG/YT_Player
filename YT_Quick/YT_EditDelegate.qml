@@ -1,28 +1,28 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 Popup {
     id: root
 
-    property var modelData: null
+    property var userData: null
     property var acceptedFunction: null
     property var cancelFunction: null
 
+    property alias editItem: editItem
     property alias text: editItem.text
     property alias placeholderText: editItem.placeholderText
     function open_YT(parent, acceptedFunction = null, cancelFunction = null) {
-        this.parent = parent
-        this.acceptedFunction = acceptedFunction
-        this.cancelFunction = cancelFunction
+        this.parent = parent;
+        this.acceptedFunction = acceptedFunction;
+        this.cancelFunction = cancelFunction;
 
-        this.focus = true
-        this.contentItem.focus = true
+        this.focus = true;
+        this.contentItem.focus = true;
         // this.contentItem.text = text
         // this.contentItem.selectAll()
 
-        this.open()
+        this.open();
     }
 
     // enter: Transition {
@@ -35,58 +35,71 @@ Popup {
     // }
 
     enter: Transition {
-        NumberAnimation { property: "opacity"; from: 0.0; to: 1.0}
-        NumberAnimation { property: "width"; from: 0; to: width}
+        NumberAnimation {
+            property: "opacity"
+            from: 0.0
+            to: 1.0
+        }
+        NumberAnimation {
+            property: "width"
+            from: 0
+            to: width
+        }
     }
     exit: Transition {
-        NumberAnimation { property: "opacity"; from: 1.0; to: 0.0}
-        NumberAnimation { property: "width"; from: width; to: 0}
+        NumberAnimation {
+            property: "opacity"
+            from: 1.0
+            to: 0.0
+        }
+        NumberAnimation {
+            property: "width"
+            from: width
+            to: 0
+        }
     }
 
-    Component.onCompleted: {
-        modelData = {}
-        modelData["acceptData"] = ""
-    }
     onClosed: {
-        if(root.cancelFunction) root.cancelFunction()
-        parent = null
-        acceptedFunction = null
-        cancelFunction = null
+        if (root.cancelFunction)
+            root.cancelFunction();
 
-        modelData = {}
-        modelData["acceptData"] = ""
-        placeholderText = ""
-        x = 0
-        y = 0
+        parent = null;
+        acceptedFunction = null;
+        cancelFunction = null;
+
+        x = 0;
+        y = 0;
+        userData = null;
+
+        text = "";
+        placeholderText = "";
     }
 
     width: parent ? parent.width : width
     height: parent ? parent.height : height
 
     padding: 0
-    background: Rectangle {
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
-        border.color: "#FFD700"
+    background: YT_Rectangle {
+        color: YT_Info.ItemFocusColor
+        border.color: YT_Info.FontFocusColor
     }
     contentItem: TextField {
         id: editItem
         background: null
 
         placeholderTextColor: color
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
+        color: YT_Info.FontColor
 
         padding: 0
         verticalAlignment: Text.AlignVCenter
         horizontalAlignment: Text.AlignLeft
         onAccepted: {
             if (root.acceptedFunction) {
-                root.modelData["acceptData"] = text
-                root.acceptedFunction(root.modelData)
+                root.acceptedFunction(root.text, root.userData);
             }
 
-            root.cancelFunction = null
-            root.close()
+            root.cancelFunction = null;
+            root.close();
         }
     }
 }

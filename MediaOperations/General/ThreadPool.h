@@ -13,7 +13,8 @@
 class ThreadPool
 {
 protected:
-    class ThreadWorker{
+    class ThreadWorker
+    {
     public:
         ThreadWorker(ThreadPool *par, int id);
 
@@ -23,7 +24,8 @@ protected:
         ThreadPool *parent = NULL;
     };
 
-    class TaskQueue{
+    class TaskQueue
+    {
     public:
         int task_id = 0;
         int task_add_count = 0;
@@ -43,6 +45,7 @@ protected:
     std::set<int> task_run_list;
     std::set<int> task_wait_list;
     std::map<int, TaskQueue> taskqueue_list;
+
 public:
     ThreadPool();
     ~ThreadPool();
@@ -56,18 +59,22 @@ public:
 
     int getTaskID(int task_need = 1);
 
-    template<typename F, typename ...Args>
-    auto addTask(int task_id, F &&f, Args &&...args)->std::future<decltype (f(args...))>{
-        if(taskqueue_list.find(task_id) == taskqueue_list.end()){
+    template <typename F, typename... Args>
+    auto addTask(int task_id, F &&f, Args &&...args) -> std::future<decltype(f(args...))>
+    {
+        if (taskqueue_list.find(task_id) == taskqueue_list.end())
+        {
             throw std::out_of_range("addTask of task_id error");
         }
-        if(taskqueue_list[task_id].task_need_count == taskqueue_list[task_id].task_add_count){
+        if (taskqueue_list[task_id].task_need_count == taskqueue_list[task_id].task_add_count)
+        {
             throw std::out_of_range("addTask of task_need error");
         }
 
-        std::function<decltype (f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
-        auto task_ptr = std::make_shared<std::packaged_task<decltype (f(args...))()>>(func);
-        std::function<void()> worker_task = [task_ptr](){
+        std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
+        auto task_ptr = std::make_shared<std::packaged_task<decltype(f(args...))()>>(func);
+        std::function<void()> worker_task = [task_ptr]()
+        {
             (*task_ptr)();
         };
 
@@ -81,15 +88,18 @@ public:
         return task_ptr->get_future();
     }
 
-    template<typename F, typename ...Args>
-    auto addTask_Release(int task_id, F &&f, Args &&...args)->std::future<decltype (f(args...))>{
-        if(taskqueue_list.find(task_id) == taskqueue_list.end()){
+    template <typename F, typename... Args>
+    auto addTask_Release(int task_id, F &&f, Args &&...args) -> std::future<decltype(f(args...))>
+    {
+        if (taskqueue_list.find(task_id) == taskqueue_list.end())
+        {
             throw std::out_of_range("addTask of task_id error");
         }
 
-        std::function<decltype (f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
-        auto task_ptr = std::make_shared<std::packaged_task<decltype (f(args...))()>>(func);
-        std::function<void()> worker_task = [task_ptr](){
+        std::function<decltype(f(args...))()> func = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
+        auto task_ptr = std::make_shared<std::packaged_task<decltype(f(args...))()>>(func);
+        std::function<void()> worker_task = [task_ptr]()
+        {
             (*task_ptr)();
         };
 

@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls.Basic
+import QtQuick.Controls
 
 import YT_Player
 
@@ -11,25 +11,38 @@ Popup {
     property var acceptedFunction: null
     property var cancelFunction: null
     function open_YT(message, acceptedFunction = null, cancelFunction = null) {
-        this.message = message
-        this.acceptedFunction = acceptedFunction
-        this.cancelFunction = cancelFunction
-        this.open()
+        this.message = message;
+        this.acceptedFunction = acceptedFunction;
+        this.cancelFunction = cancelFunction;
+        this.open();
     }
 
     onClosed: {
-        if(root.cancelFunction) root.cancelFunction()
+        if (root.cancelFunction)
+            root.cancelFunction();
 
-        message = ""
-        acceptedFunction = null
-        cancelFunction = null
+        message = "";
+        acceptedFunction = null;
+        cancelFunction = null;
     }
 
     enter: Transition {
-        NumberAnimation { property: "opacity"; duration: 300; from: 0.0; to: 1.0; easing.type: Easing.OutQuad}
+        NumberAnimation {
+            property: "opacity"
+            duration: 300
+            from: 0.0
+            to: 1.0
+            easing.type: Easing.OutQuad
+        }
     }
     exit: Transition {
-        NumberAnimation { property: "opacity"; duration: 300; from: 1.0; to: 0.0; easing.type: Easing.OutQuad}
+        NumberAnimation {
+            property: "opacity"
+            duration: 300
+            from: 1.0
+            to: 0.0
+            easing.type: Easing.OutQuad
+        }
     }
 
     anchors.centerIn: parent
@@ -42,16 +55,16 @@ Popup {
         columns: 2
     }
     background: Rectangle {
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-        border.color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
+        radius: YT_Info.Radius
+        color: YT_Info.BackgroundColor
+        border.color: YT_Info.ItemFocusColor
     }
 
     Text {
         parent: rootLayout
 
         text: root.message
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
+        color: YT_Info.FontColor
 
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
@@ -74,7 +87,7 @@ Popup {
         Layout.fillWidth: true
 
         onClicked: {
-            root.close()
+            root.close();
         }
     }
     YT_Button {
@@ -90,10 +103,11 @@ Popup {
         Layout.fillWidth: true
 
         onClicked: {
-            if(root.acceptedFunction) root.acceptedFunction()
+            if (root.acceptedFunction)
+                root.acceptedFunction();
 
-            root.cancelFunction = null
-            root.close()
+            root.cancelFunction = null;
+            root.close();
         }
     }
 }

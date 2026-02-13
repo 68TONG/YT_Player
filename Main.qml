@@ -1,7 +1,8 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
+import Qt.labs.platform
 import YT_Player
 
 YT_Window {
@@ -10,18 +11,35 @@ YT_Window {
     height: 480
     visible: true
 
-    YT_TransformWindow {}
+    Item {
+        Component.onCompleted: {
+            YT.navigationWidget.model.append(YT.musicWidget.listView);
+            YT.mainScrollBar.addTarget(YT.musicWidget.itemView.view);
+            YT.mainScrollBar.addTarget(YT.fileWidget.listView.view);
+            YT.mainScrollBar.addTarget(YT.fileWidget.itemView.view);
+        }
+    }
+
+    YT_TransformWindow {
+        target: Window.window
+    }
+
+    SystemTrayIcon {
+        visible: true
+        icon.source: "qrc:/Resource_UI/music_logo.png"
+    }
+
     Rectangle {
         id: mainBackground
         anchors.fill: parent
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+        color: YT_Info.BackgroundColor
+        radius: YT_Info.Radius
     }
 
     GridLayout {
         id: mainWindow_Layout
         anchors.fill: parent
-        anchors.margins: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+        anchors.margins: YT_Info.Margin
 
         rows: 2
         rowSpacing: anchors.margins
@@ -33,8 +51,8 @@ YT_Window {
         id: mainTool
         parent: mainWindow_Layout
 
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemColor)
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+        color: YT_Info.ItemColor
+        radius: YT_Info.Radius
 
         Layout.row: 0
         Layout.column: 1
@@ -45,14 +63,6 @@ YT_Window {
             anchors.fill: parent
             spacing: 0
 
-            // YT_TextField {
-            //     Layout.fillWidth: true
-            //     Layout.fillHeight: true
-
-            //     font.pixelSize: 12
-            //     placeholderText: "搜索框"
-            //     background.anchors.margins: 3
-            // }
             YT_MainPathBar {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -62,20 +72,20 @@ YT_Window {
                 model: ListModel {
                     ListElement {
                         path: "qrc:/Resource_UI/full_screen.png"
-                        operation: function() {
-                            console.log("Function 1 called")
+                        operation: function () {
+                            console.log("Function 1 called");
                         }
                     }
                     ListElement {
                         path: "qrc:/Resource_UI/minimize.png"
-                        operation: function() {
-                            console.log("Function 2 called")
+                        operation: function () {
+                            console.log("Function 2 called");
                         }
                     }
                     ListElement {
                         path: "qrc:/Resource_UI/close.png"
-                        operation: function() {
-                            Qt.quit()
+                        operation: function () {
+                            Qt.quit();
                         }
                     }
                 }
@@ -84,8 +94,8 @@ YT_Window {
                     Layout.preferredWidth: parent.height
                     Layout.preferredHeight: parent.height
 
-                    background.anchors.margins: 4
-                    padding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+                    inset: 4
+                    padding: YT_Info.Radius
 
                     modelData: model.path
                     contentItem: YT_Button.LoadImage {}
@@ -96,56 +106,15 @@ YT_Window {
         }
     }
 
-    ListView {
-        id: mainLogo
+    YT_NavigationWidget {
+        id: mainNavigation
         parent: mainWindow_Layout
-
-        interactive: false
-        currentIndex: YT.widgetIndex
-        onCurrentIndexChanged: YT.widgetIndex = currentIndex
-
-        spacing: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        topMargin: spacing
 
         Layout.row: 0
         Layout.rowSpan: 2
         Layout.column: 0
-        Layout.preferredWidth: 50
+        Layout.preferredWidth: implicitWidth
         Layout.fillHeight: true
-
-        model: YT.widgetModel.count
-        delegate: YT_Button {
-            required property int index
-            readonly property QtObject model: YT.widgetModel.get(index)
-            readonly property string logo_path: model.logo_path
-
-            property int implicitSize: parent.width - padding * 2
-            padding: ListView.view.spacing
-            implicitWidth: implicitSize
-            implicitHeight: implicitSize
-            anchors.horizontalCenter: parent.horizontalCenter
-
-            modelData: logo_path
-            contentItem: YT_Button.LoadImage {}
-            background: null
-
-            onClicked: YT.setWidgetIndex(index)
-        }
-
-        highlight: Rectangle {
-            anchors.left: ListView.view.currentItem.left
-            anchors.right: ListView.view.currentItem.right
-
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
-            radius: ListView.view.spacing
-        }
-
-        Rectangle {
-            z: -true
-            anchors.fill: parent
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemColor)
-            radius: parent.spacing
-        }
     }
 
     YT_ScrollBarList {
@@ -157,12 +126,8 @@ YT_Window {
         Layout.column: 2
         Layout.preferredWidth: 10
         Layout.fillHeight: true
-
         Component.onCompleted: {
-            addTarget(musicWidget.listView.view)
-            addTarget(musicWidget.itemView.view)
-            addTarget(fileWidget.listView.view)
-            addTarget(fileWidget.itemView.view)
+            YT.mainScrollBar = this;
         }
     }
 
@@ -170,14 +135,18 @@ YT_Window {
         id: controlWidget
     }
 
+    YT_PageWidget {}
+
     SwipeView {
         id: mainWidget
         parent: mainWindow_Layout
         currentIndex: YT.widgetIndex
-        onCurrentIndexChanged:  YT.widgetIndex = currentIndex
+        onCurrentIndexChanged: YT.widgetIndex = currentIndex
+        onCurrentItemChanged: currentItem.forceActiveFocus()
 
         clip: true
-        spacing: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+        spacing: YT_Info.Spacing
+        interactive: currentItem != editWidget
 
         Layout.row: 1
         Layout.column: 1
@@ -192,127 +161,25 @@ YT_Window {
             id: fileWidget
         }
 
-
-        YT_ListSelectView {
-            id: listSelectView
-            model: ListModel {
-                id: listModel
-                Component.onCompleted: {
-                    for (var i = 1; i <= 100; i++) {
-                        append({ display: "Item " + i })
-                    }
-                }
-            }
-            delegate: Rectangle {
-                width: parent ? parent.width : width
-                height: 40
-                border.color: "black"
-                color: listSelectView.view.currentIndex === index ? "red" : "green"
-                Text {
-                    text: model.display
-                    anchors.centerIn: parent
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: listSelectView.view.currentIndex = index
-                }
-            }
+        NE_View {
+            id: editWidget
         }
 
-        Rectangle {
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(0, 0, 255, 0.5) } // 从透明开始
-                GradientStop { position: 0.5; color: Qt.rgba(0, 0, 255, 0.5) } // 半透明的蓝色
-                GradientStop { position: 1.0; color: "blue" } // 到不透明的蓝色
+        Column {
+            id: test
+            Rectangle {
+                width: parent.width
+                height: parent.height > 500 ? 100 : 0
+                color: 'blue'
+                Behavior on height {
+                    NumberAnimation {}
+                }
+            }
+            Rectangle {
+                width: parent.width
+                height: 100
+                color: 'red'
             }
         }
     }
-
-    // Rectangle {
-    //     id: mainWidget
-    //     parent: mainWindow_Layout
-
-    //     color: "green"
-
-    //     Layout.row: 1
-    //     Layout.column: 0
-    //     Layout.fillWidth: true
-    //     Layout.fillHeight: true
-    // }
-
-    // YT_TreeView {
-    //     id: mainWidget
-    //     parent: mainWindow_Layout
-
-    //     model: FileListModel { }
-
-    //     padding: 7
-
-    //     Layout.row: 1
-    //     Layout.column: 0
-    //     Layout.fillWidth: true
-    //     Layout.fillHeight: true
-    // }
-
-    // YT_TabBar {
-    //     id: bar
-    //     parent: mainWindow_Layout
-
-    //     Layout.row: 1
-    //     Layout.column: 0
-    //     Layout.fillWidth: true
-
-    //     // TabButton {
-    //     //     text: qsTr("Home")
-    //     // }
-    //     // TabButton {
-    //     //     text: qsTr("Discover")
-    //     // }
-    //     // TabButton {
-    //     //     text: qsTr("Activity")
-    //     // }
-
-    //     // Rectangle {
-    //     //     parent: bar
-    //     //     anchors.fill: parent
-    //     //     color: "red"
-    //     // }
-    // }
-
-    // YT_ListView {
-    //     parent: mainWindow_Layout
-
-    //     Layout.row: 1
-    //     Layout.column: 0
-    //     Layout.fillWidth: true
-    //     Layout.fillHeight: true
-
-    //     padding: 7
-    //     model: ListModel {
-    //         Component.onCompleted: {
-    //             for (var i = 0; i < 100; i++) {
-    //                 append({"display": "Item " + (i + 1)})
-    //             }
-    //         }
-    //     }
-    // }
-
-    // YT_SplitView {
-    //     anchors.fill: parent
-    //     Rectangle {
-    //         SplitView.minimumWidth: 25
-    //         SplitView.preferredWidth: 50
-    //         SplitView.maximumWidth: 100
-
-    //         color: "red"
-    //     }
-
-    //     Rectangle {
-    //         SplitView.minimumWidth: 25
-    //         SplitView.preferredWidth: 50
-    //         SplitView.maximumWidth: 100
-
-    //         color: "red"
-    //     }
-    // }
 }

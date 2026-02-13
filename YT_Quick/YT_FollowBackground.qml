@@ -1,10 +1,7 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
 import YT_Player
 
 Rectangle {
-    property bool enableAnimation: true
     property Item followItem: null
     property int widthPadding: 0
     property int heightPadding: 0
@@ -17,27 +14,42 @@ Rectangle {
     opacity: followItem !== null
     visible: opacity !== 0
 
-    radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-    color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
+    radius: YT_Info.Radius
+    color: YT_Info.ItemFocusColor
 
     Behavior on x {
-        enabled: enableAnimation
-        NumberAnimation { duration: 300; easing.type: Easing.OutQuad}
+        enabled: true
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.OutQuad
+        }
     }
     Behavior on y {
-        enabled: enableAnimation
-        NumberAnimation { duration: 300; easing.type: Easing.OutQuad}
+        enabled: true
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.OutQuad
+        }
     }
     Behavior on width {
         enabled: false
-        NumberAnimation { duration: 300; easing.type: Easing.OutQuad}
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.OutQuad
+        }
     }
     Behavior on height {
         enabled: false
-        NumberAnimation { duration: 300; easing.type: Easing.OutQuad}
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.OutQuad
+        }
     }
     Behavior on opacity {
-        enabled: enableAnimation
-        NumberAnimation { duration: 300; easing.type: Easing.OutQuad}
+        enabled: true
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.OutQuad
+        }
     }
 }

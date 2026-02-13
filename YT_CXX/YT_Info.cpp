@@ -1,113 +1,165 @@
-#include "YT_ConfigureInfo.h"
+#include "YT_Info.h"
 
-YT_ConfigureInfo YT_ConfigureInfo::object;
+YT_Info YT_Info::object;
 
-YT_ConfigureInfo::YT_ConfigureInfo(QObject *parent)
+YT_Info::YT_Info(QObject *parent)
     : QObject{parent}
 {
-    QDir().mkpath("./YT_OutData");
-    initConfigureInfo_Data();
+    QDir().mkpath("./YT_PlayerData");
+    QDir().mkpath("./YT_PlayerCache");
+    QDir().mkpath("./YT_PlayerOutput");
+
+    FontColor = QColor(138, 138, 138);
+    FontFocusColor = QColor(255, 215, 0);
+
+    ItemColor = QColor(38, 38, 38);
+    ItemFocusColor = QColor(72, 72, 72);
+    BackgroundColor = QColor(21, 21, 21);
+
+    ItemSize = QSize(180, 30);
+    ItemSizeBig = QSize(180, 50);
+    ItemSizeSmall = QSize(180, 20);
+
+    Radius = (int)7;
+    RadiusBig = (int)15;
+    RadiusSmall = (int)3;
+
+    Spacing = (int)7;
+    SpacingBig = (int)15;
+    SpacingSmall = (int)3;
+
+    Margin = (int)7;
+    MarginBig = (int)15;
+    MarginSmall = (int)3;
+
+    const auto json = readJsonObjectFromFile(InfoPath);
+    if (json.isEmpty())
+        return;
+
+    static const auto fromJson = [](void *P, QJsonValue &&J, QMetaType &&T)
+    {
+        if (T.id() == QMetaType::Int)
+        {
+            *(int *)P = J.toInt();
+        }
+        else if (T.id() == QMetaType::QSize)
+        {
+            auto p = (QSize *)P;
+            const auto json_value = J.toObject();
+            p->setWidth(json_value.value("Width").toInt());
+            p->setHeight(json_value.value("Height").toInt());
+        }
+        else if (T.id() == QMetaType::QColor)
+        {
+            auto p = (QColor *)P;
+            const auto json_value = J.toObject();
+            p->setRed(json_value.value("Red").toInt());
+            p->setBlue(json_value.value("Blue").toInt());
+            p->setGreen(json_value.value("Green").toInt());
+            p->setAlpha(json_value.value("Alpha").toInt());
+        }
+        else if (T.id() == QMetaType::QVariantList)
+        {
+            *(QVariantList *)P = J.toArray().toVariantList();
+        }
+    };
+
+    fromJson(&FontColor, json.value(FontColorName()), FontColorType());
+    fromJson(&FontFocusColor, json.value(FontFocusColorName()), FontFocusColorType());
+
+    fromJson(&ItemColor, json.value(ItemColorName()), ItemColorType());
+    fromJson(&ItemFocusColor, json.value(ItemFocusColorName()), ItemFocusColorType());
+    fromJson(&BackgroundColor, json.value(BackgroundColorName()), BackgroundColorType());
+
+    fromJson(&ItemSize, json.value(ItemSizeName()), ItemSizeType());
+    fromJson(&ItemSizeBig, json.value(ItemSizeBigName()), ItemSizeBigType());
+    fromJson(&ItemSizeSmall, json.value(ItemSizeSmallName()), ItemSizeSmallType());
+
+    fromJson(&Radius, json.value(RadiusName()), RadiusType());
+    fromJson(&RadiusBig, json.value(RadiusBigName()), RadiusBigType());
+    fromJson(&RadiusSmall, json.value(RadiusSmallName()), RadiusSmallType());
+
+    fromJson(&Spacing, json.value(SpacingName()), SpacingType());
+    fromJson(&SpacingBig, json.value(SpacingBigName()), SpacingBigType());
+    fromJson(&SpacingSmall, json.value(SpacingSmallName()), SpacingSmallType());
+
+    fromJson(&Margin, json.value(MarginName()), MarginType());
+    fromJson(&MarginBig, json.value(MarginBigName()), MarginBigType());
+    fromJson(&MarginSmall, json.value(MarginSmallName()), MarginSmallType());
+
+    fromJson(&MusicListInfo_ID_List, json.value(MusicListInfo_ID_ListName()), MusicListInfo_ID_ListType());
 }
 
-YT_ConfigureInfo::~YT_ConfigureInfo()
+YT_Info::~YT_Info()
 {
-    saveConfigureInfo_Data();
+    QJsonObject json;
+    static const auto toJson = [](void *P, QMetaType &&T) -> QJsonValue
+    {
+        if (T.id() == QMetaType::Int)
+        {
+            return *(int *)P;
+        }
+        else if (T.id() == QMetaType::QSize)
+        {
+            auto p = (QSize *)P;
+            QJsonObject json_value;
+            json_value.insert("Width", p->width());
+            json_value.insert("Height", p->height());
+            return json_value;
+        }
+        else if (T.id() == QMetaType::QColor)
+        {
+            auto p = (QColor *)P;
+            QJsonObject json_value;
+            json_value.insert("Red", p->red());
+            json_value.insert("Blue", p->blue());
+            json_value.insert("Green", p->green());
+            json_value.insert("Alpha", p->alpha());
+            return json_value;
+        }
+        else if (T.id() == QMetaType::QVariantList)
+        {
+            QVariant json_value = *(QVariantList *)P;
+            return json_value.toJsonValue();
+        }
+        return {};
+    };
+
+    json.insert(FontColorName(), toJson(&FontColor, FontColorType()));
+    json.insert(FontFocusColorName(), toJson(&FontFocusColor, FontFocusColorType()));
+
+    json.insert(ItemColorName(), toJson(&ItemColor, ItemColorType()));
+    json.insert(ItemFocusColorName(), toJson(&ItemFocusColor, ItemFocusColorType()));
+    json.insert(BackgroundColorName(), toJson(&BackgroundColor, BackgroundColorType()));
+
+    json.insert(ItemSizeName(), toJson(&ItemSize, ItemSizeType()));
+    json.insert(ItemSizeBigName(), toJson(&ItemSizeBig, ItemSizeBigType()));
+    json.insert(ItemSizeSmallName(), toJson(&ItemSizeSmall, ItemSizeSmallType()));
+
+    json.insert(RadiusName(), toJson(&Radius, RadiusType()));
+    json.insert(RadiusBigName(), toJson(&RadiusBig, RadiusBigType()));
+    json.insert(RadiusSmallName(), toJson(&RadiusSmall, RadiusSmallType()));
+
+    json.insert(SpacingName(), toJson(&Spacing, SpacingType()));
+    json.insert(SpacingBigName(), toJson(&SpacingBig, SpacingBigType()));
+    json.insert(SpacingSmallName(), toJson(&SpacingSmall, SpacingSmallType()));
+
+    json.insert(MarginName(), toJson(&Margin, MarginType()));
+    json.insert(MarginBigName(), toJson(&MarginBig, MarginBigType()));
+    json.insert(MarginSmallName(), toJson(&MarginSmall, MarginSmallType()));
+
+    json.insert(MusicListInfo_ID_ListName(), toJson(&MusicListInfo_ID_List, MusicListInfo_ID_ListType()));
+
+    writeJsonObjectToFile(InfoPath, json);
 }
 
-YT_ConfigureInfo &YT_ConfigureInfo::getObject()
+YT_Info &YT_Info::getObject()
 {
-    return YT_ConfigureInfo::object;
+    return object;
 }
 
-YT_ConfigureInfo *YT_ConfigureInfo::create(QQmlEngine *, QJSEngine *)
+YT_Info *YT_Info::create(QQmlEngine *, QJSEngine *)
 {
     QJSEngine::setObjectOwnership(&object, QJSEngine::CppOwnership);
     return &object;
-}
-
-QVariant YT_ConfigureInfo::getData(const InfoFlags index) const
-{
-    return configureInfo_Data[index];
-}
-
-void YT_ConfigureInfo::setData(const InfoFlags index, const QVariant &data)
-{
-    configureInfo_Data[index] = data;
-}
-
-void YT_ConfigureInfo::transformWindow(QWindow *window, int type)
-{
-    type == 0 ? window->startSystemMove() : window->startSystemResize((Qt::Edge)type);
-}
-
-void YT_ConfigureInfo::initConfigureInfo_Data()
-{
-    configureInfo_Data.resize(InfoFlags_End);
-    configureInfo_Data[FontColor] = QColor(138, 138, 138);
-    configureInfo_Data[ItemColor] = QColor(38, 38, 38);
-    configureInfo_Data[ItemFocusColor] = QColor(72, 72, 72);
-    configureInfo_Data[BackgroundColor] = QColor(21, 21, 21);
-
-    configureInfo_Data[ItemRadius] = (int)7;
-    configureInfo_Data[ItemRadius_Big] = (int)15;
-    configureInfo_Data[ItemRadius_Small] = (int)3;
-
-    const auto configureInfo_Json = readJsonObjectFromFile(configureInfo_DataPath);
-    if(configureInfo_Json.isEmpty()) return ;
-
-    for(auto it = configureInfo_Json.constBegin(); it != configureInfo_Json.constEnd();it++){
-        if(it.key() == "Size"){
-            const auto configureInfo_JsonSize = it->toObject();
-            for(auto it = configureInfo_JsonSize.constBegin(); it != configureInfo_JsonSize.constEnd();it++){
-                QSize value;
-                const auto json_value = it->toObject();
-                value.setWidth(json_value.value("Width").toInt());
-                value.setHeight(json_value.value("Height").toInt());
-                configureInfo_Data[InfoFlags_Map.key(it.key())] = value;
-            }
-        } else if(it.key() == "Color"){
-            const auto configureInfo_JsonColor = it->toObject();
-            for(auto it = configureInfo_JsonColor.constBegin(); it != configureInfo_JsonColor.constEnd();it++){
-                QColor value;
-                const auto json_value = it->toObject();
-                value.setRed(json_value.value("Red").toInt());
-                value.setBlue(json_value.value("Blue").toInt());
-                value.setGreen(json_value.value("Green").toInt());
-                value.setAlpha(json_value.value("Alpha").toInt());
-                configureInfo_Data[InfoFlags_Map.key(it.key())] = value;
-            }
-        } else {
-            configureInfo_Data[InfoFlags_Map.key(it.key())] = it->toVariant();
-        }
-    }
-}
-
-void YT_ConfigureInfo::saveConfigureInfo_Data()
-{
-    QJsonObject configureInfo_Json;
-    QJsonObject configureInfo_JsonSize;
-    QJsonObject configureInfo_JsonColor;
-    for (int i = 0;i < configureInfo_Data.count();i++) {
-        const auto &it = configureInfo_Data[i];
-        if (it.typeId() == QMetaType::Type::QColor) {
-            QJsonObject json_value;
-            const auto value = it.value<QColor>();
-            json_value.insert("Red", value.red());
-            json_value.insert("Blue", value.blue());
-            json_value.insert("Green", value.green());
-            json_value.insert("Alpha", value.alpha());
-            configureInfo_JsonColor.insert(InfoFlags_Map.value((InfoFlags)i), json_value);
-        } else if (it.typeId() == QMetaType::Type::QSize) {
-            QJsonObject json_value;
-            const auto value = it.value<QSize>();
-            json_value.insert("Width", value.width());
-            json_value.insert("Height", value.height());
-            configureInfo_JsonSize.insert(InfoFlags_Map.value((InfoFlags)i), json_value);
-        } else {
-            configureInfo_Json.insert(InfoFlags_Map.value((InfoFlags)i), it.toJsonValue());
-        }
-    }
-    configureInfo_Json.insert("Size", configureInfo_JsonSize);
-    configureInfo_Json.insert("Color", configureInfo_JsonColor);
-    writeJsonObjectToFile(configureInfo_DataPath, configureInfo_Json);
 }

@@ -5,6 +5,7 @@
 #include <QWindow>
 #include <QQuickItem>
 #include <QQmlEngine>
+#include <QQmlContext>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -17,9 +18,18 @@
 #include <QSize>
 #include <QColor>
 
+#include <QJsonValue>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+
+#include <QThread>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QtConcurrent>
+
+#include <QLocale>
+#include <QCollator>
 
 #include <QSet>
 #include <QMap>
@@ -28,8 +38,12 @@
 #include <QQueue>
 #include <QVector>
 
+#include <TimeDebugger.h>
+
 int KMP_String(const QString &data, const QString &pattern);
 
+QVariant jsonFirstData(const QJsonValue &data);
+QList<QVariant> jsonListData(const QJsonValue &data);
 QJsonObject readJsonObjectFromFile(const QString &file_path);
 void writeJsonObjectToFile(const QString &file_path, const QJsonObject &json_object);
 

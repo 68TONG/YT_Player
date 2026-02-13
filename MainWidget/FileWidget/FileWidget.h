@@ -8,6 +8,7 @@ class FileWidget : public QQuickItem
 {
     Q_OBJECT
     QML_ELEMENT
+
     Q_PROPERTY(QString operationType MEMBER operationType NOTIFY operationTypeChanged)
     Q_PROPERTY(QList<QString> operationPaths MEMBER operationPaths)
 
@@ -35,21 +36,20 @@ protected:
     FileItemModel *curModel = nullptr;
     FileItemModel *getCurModel() const { return curModel; }
     void setCurModel(FileItemModel *&data) {
-        if (curModel)
-            disconnect(curModel, &FileItemModel::currentDirChanged, this, &FileWidget::curModelPathChanged);
         if (curModel == data)
             return ;
-        if (data == nullptr)
-            return curPath.clear();
+        if (curModel)
+            disconnect(curModel, &FileItemModel::currentDirChanged, this, &FileWidget::curModelPathChanged);
+        if (data)
+            connect(data, &FileItemModel::currentDirChanged, this, &FileWidget::curModelPathChanged);
 
         curModel = data;
-        connect(curModel, &FileItemModel::currentDirChanged, this, &FileWidget::curModelPathChanged);
         curModelPathChanged();
         emit curModelChanged();
     }
     void curModelPathChanged() {
         static const QRegularExpression re(R"([/\\])");
-        curPath = curModel->currentDir.split(re);
+        curPath = curModel ? curModel->currentDir.split(re) : QList<QString>();
         curPath.removeAll("");
         emit curPathChanged();
     }

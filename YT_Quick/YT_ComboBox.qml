@@ -1,56 +1,43 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 ComboBox {
     id: root
 
-    component TextItem: ItemDelegate {
-        width: parent.width
-        height: contentItem.implicitHeight
+    component YT_Delegate: AbstractButton {
+        required property int index
+        property bool is_current: ListView.view.currentIndex == index
 
-        padding: 0
+        padding: YT_Info.MarginSmall
         indicator: null
         background: null
-
-        leftPadding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        rightPadding:  YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        contentItem: Text {
+        contentItem: YT_Text {
             text: parent.text
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
-
-            horizontalAlignment: Text.AlignLeft
-            verticalAlignment: Text.AlignVCenter
+            color: parent.is_current ? YT_Info.FontFocusColor : YT_Info.FontColor
         }
     }
 
+    padding: 0
     indicator: null
-    contentItem: TextItem {
+    contentItem: YT_Delegate {
         enabled: false
-        text: root.displayText
+        is_current: false
+        text: parent.displayText
     }
-    background: Rectangle {
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        color: (parent.hovered || parent.down)
-               ? YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
-               : YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemColor)
+    background: YT_Rectangle {
+        color: YT_Info.ItemFocusColor
+        opacity: (parent.hovered || parent.down || popup.visible)
     }
-    popup: Popup {
-        y: root.height + 2
-        implicitWidth: root.implicitWidth
-        implicitHeight: contentItem.implicitHeight
-
-        padding: 0
-        background: null
-        contentItem: YT_ListView {
-            clip: true
-            implicitHeight: view.contentItem.height
-
-            model: root.delegateModel
-            view.currentIndex: root.highlightedIndex
-            followBackground.followItem: view.currentItem
-        }
+    popup: YT_PopupList {
+        model: visible ? root.delegateModel : null
+        view.snapMode: ListView.SnapToItem
+        view.currentIndex: root.currentIndex
+        view.maximumFlickVelocity: 0
+        followBackground.followItem: view.itemAtIndex(root.highlightedIndex)
     }
-    delegate: TextItem { text: root.model[index] }
+    delegate: YT_Delegate {
+        implicitWidth: parent ? parent.width : 0
+        text: root.model[index]
+    }
 }

@@ -1,7 +1,4 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls
-
 import YT_Player
 
 Item {
@@ -27,14 +24,10 @@ Item {
         setCurrentIndex_Animation.start()
     }
 
-    Text {
+    YT_Text {
         id: contentItem
         anchors.fill: parent
         text: textList[currentIndex] ?? ""
-
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
 
         FontMetrics {
             id: contentItem_FontMetrics

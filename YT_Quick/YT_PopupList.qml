@@ -1,74 +1,75 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 Popup {
     id: root
+    property alias view: rootView
     property alias model: rootView.model
     property alias delegate: rootView.delegate
     function open_YT(target) {
-        parent = target
-        open()
+        parent = target;
+        open();
     }
 
-    enter: Transition {
-        NumberAnimation { property: "height"; duration: 300; from: 0.0; to: height; easing.type: Easing.OutQuad}
-        NumberAnimation { property: "opacity"; duration: 300; from: 0.0; to: 1.0; easing.type: Easing.OutQuad}
-    }
-    exit: Transition {
-        NumberAnimation { property: "opacity"; duration: 300; from: 1.0; to: 0.0; easing.type: Easing.OutQuad}
-    }
+    x: 0
+    y: parent ? parent.height + YT_Info.SpacingSmall : 0
+    width: parent ? parent.width : 0
+    height: implicitContentHeight * Math.min(5, rootView.count) / rootView.count + (rootView.count ? padding * 2 : 0)
+    padding: YT_Info.Margin
 
-    padding: 0
-    property int followItemPadding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius_Small) * 2
     readonly property YT_FollowBackground followBackground: YT_FollowBackground {
         parent: rootView.contentItem
         followItem: rootView.currentItem
-        widthPadding: followItemPadding
-        heightPadding: followItemPadding
     }
 
-    background: Rectangle {
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-        border.color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
+    background: YT_Rectangle {
+        color: YT_Info.BackgroundColor
+        border.color: YT_Info.ItemFocusColor
     }
     contentItem: ListView {
         id: rootView
+
         clip: true
         implicitWidth: contentItem/*.childrenRect*/.width
         implicitHeight: contentItem/*.childrenRect*/.height
-
         highlightFollowsCurrentItem: false
 
         model: null
-        delegate: YT_PopupList_Delegate {}
+        delegate: null
+
+        ScrollBar.vertical: YT_ScrollBar {
+            parent: root.background
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: 2
+        }
     }
 
-    component YT_PopupList_Delegate: YT_Button {
-        required property int index
-        required property var model
-        horizontalPadding: verticalPadding * 2
-        verticalPadding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius_Small) * 2
-
-        indicator: null
-        background: null
-        contentItem: YT_Button.LoadText {}
-        onHoveredChanged: if (hovered) ListView.view.currentIndex = index
+    enter: Transition {
+        NumberAnimation {
+            property: "height"
+            duration: 300
+            from: 0.0
+            to: root.height
+            easing.type: Easing.OutQuad
+        }
+        NumberAnimation {
+            property: "opacity"
+            duration: 300
+            from: 0.0
+            to: 1.0
+            easing.type: Easing.OutQuad
+        }
     }
-    component YT_SelectedIndicator: Image {
-        visible: parent.selected
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-
-        anchors.margins: parent.verticalPadding + 2
-        anchors.rightMargin: parent.horizontalPadding
-
-        smooth: true
-        source: "qrc:/Resource_UI/ok.png"
-        fillMode: Image.PreserveAspectFit
+    exit: Transition {
+        NumberAnimation {
+            property: "opacity"
+            duration: 300
+            from: 1.0
+            to: 0.0
+            easing.type: Easing.OutQuad
+        }
     }
 }

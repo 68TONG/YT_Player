@@ -1,7 +1,5 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 FileWidget {
@@ -98,15 +96,6 @@ FileWidget {
         parent: itemView
         z: +true * 2; height: 30
 
-        contentItem: ListView {
-            orientation: parent.orientation
-            Rectangle {
-                z: -true
-                anchors.fill: parent
-                color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-            }
-        }
-
         Repeater {
             id: itemHeader_Repeater
             model: itemHeader_Model
@@ -190,27 +179,22 @@ FileWidget {
             title: "添加到"
             YT_Menu {
                 title: "MusicWidget"
-                enabled: count
-
                 model: YT.musicListModel
                 delegate: YT_Menu.YT_MenuItem {
-                    required property int infoID
-                    required property string name
-
-                    text: name
+                    required property string infoID
+                    text: infoID
                     onTriggered: {
                         if (itemView_Menu.addOperationPaths() === false) {
                             return messageDialog.open_YT("未选择文件")
                         }
                         root.operationType = "MusicWidget"
-                        YT.musicListModel.addItemInfo(infoID, root.operationPaths)
+                        YT.musicListModel.addFileInfo(infoID, root.operationPaths)
                     }
                 }
             }
 
             YT_Menu {
                 title: "WallpaperWidget"
-                enabled: count
             }
         }
 
@@ -227,8 +211,8 @@ FileWidget {
                 editDelegate.text = itemModel.data(index, FileItemModel.FileInfoRole_Name)
                 editDelegate.open_YT(target, acceptedFunction, null)
             }
-            function acceptedFunction(data) {
-                root.rename(itemModel.currentDir + "/" + data["acceptData"])
+            function acceptedFunction(data, user_data) {
+                root.rename(itemModel.currentDir + "/" + data)
             }
         }
 
@@ -295,18 +279,23 @@ FileWidget {
     }
     readonly property YT_PopupList itemHeader_Menu: YT_PopupList {
         id: itemHeader_Menu
-        x: 0
-        y: parent ? parent.height + true * 2 : 0
-        implicitWidth: parent ? parent.width : 0
-        implicitHeight: contentItem.implicitHeight
 
         model: itemModel.headerIndex_List
-        delegate: YT_PopupList.YT_PopupList_Delegate {
+        delegate: YT_Button {
+            required property int index
+            required property var model
             property bool selected: itemHeader_Model.count && itemHeader_Model.contains(index)
+
+            indicator: YT_Button.LoadSelectIndicator {}
+            background: null
+            contentItem: YT_Button.LoadText {}
+
             modelData: itemModel.getHeaderName(model.modelData)
             implicitWidth: parent.width
-            indicator: YT_PopupList.YT_SelectedIndicator { }
 
+            onHoveredChanged: {
+                if (hovered) ListView.view.currentIndex = index
+            }
             onClicked: {
                 itemHeader_Menu.close()
                 if (selected) {
@@ -325,7 +314,7 @@ FileWidget {
 
         contentItem: Text {
             text: listView_Delegate.fileName
-            color: hovered ? "#FFD700" : YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
+            color: hovered ? YT_Info.FontFocusColor : YT_Info.FontColor
 
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter
@@ -334,7 +323,8 @@ FileWidget {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: function (mouse) {
-                if(mouse.button === Qt.LeftButton) {
+                listView.view.focus = true
+                if (mouse.button === Qt.LeftButton) {
                     itemModel.currentDir = listView_Delegate.filePath
                 } else if(mouse.button === Qt.RightButton) {
                     listView.followBackground.followItem = listView_Delegate
@@ -363,8 +353,8 @@ FileWidget {
             background: Rectangle {
                 visible: opacity !== 0
                 opacity: selected || draging
-                radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-                color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
+                radius: YT_Info.Radius
+                color: YT_Info.ItemFocusColor
 
                 Behavior on opacity {
                     NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
@@ -382,9 +372,9 @@ FileWidget {
 
                         clip: true
                         text: itemModel.data(itemView_Delegate.index, headerItem.headerIndex) ?? null
-                        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
+                        color: YT_Info.FontColor
 
-                        leftPadding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+                        leftPadding: YT_Info.Margin
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
@@ -433,7 +423,7 @@ FileWidget {
             contentItem: YT_Button.LoadText {}
 
             YT_ItemDelegate.YT_DropDelegate {
-                item_delegate: itemHeader_Delegate
+                target_item: itemHeader_Delegate
                 DragHandler {
                     target: null
                     acceptedButtons: Qt.LeftButton | Qt.RightButton

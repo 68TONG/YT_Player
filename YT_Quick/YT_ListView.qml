@@ -1,18 +1,44 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
-Rectangle {
+Control {
     id: root
 
-    radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-    color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-    border.color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
-
-    property int padding: 0
-    property int spacing: 0
+    property int radius: YT_Info.Radius
     property Item header: null
+    onHeaderChanged: {
+        if (header == null) {
+            rootView.anchors.fill = root;
+            rootView.anchors.margins = root.padding;
+        } else if (header != null && header.parent == root) {
+            header.anchors.margins = root.padding;
+            header.anchors.bottomMargin = 0;
+            header.anchors.top = root.top;
+            header.anchors.left = root.left;
+            header.anchors.right = root.right;
+
+            rootView.anchors.margins = root.padding;
+            rootView.anchors.topMargin = root.spacing;
+            rootView.anchors.fill = undefined;
+            rootView.anchors.top = header.bottom;
+            rootView.anchors.left = root.left;
+            rootView.anchors.right = root.right;
+            rootView.anchors.bottom = root.bottom;
+        }
+    }
+
+    property Item footer: null
+    onFooterChanged: {
+        if (footer != null && footer.parent == root) {
+            footer.z = Qt.binding(function () {
+                return rootView.z + true;
+            });
+            // footer.anchors.horizontalCenter = root.horizontalCenter;
+            footer.anchors.bottomMargin = root.padding + YT_Info.Margin;
+            footer.anchors.bottom = root.bottom;
+        }
+    }
 
     property alias view: rootView
     property alias model: rootView.model
@@ -28,16 +54,19 @@ Rectangle {
         parent: rootView.contentItem
     }
 
-    ListView {
+    background: YT_Rectangle {
+        radius: root.radius
+        border.color: YT_Info.ItemFocusColor
+    }
+    contentItem: ListView {
         id: rootView
         clip: true
-        anchors.fill: parent
-        anchors.margins: parent.padding
+        
+        implicitWidth: contentItem/*.childrenRect*/.width
+        implicitHeight: contentItem/*.childrenRect*/.height
 
         property int margins: 0
-        property int scrollbar_margin: ScrollBar.vertical && ScrollBar.vertical.parent === this
-                                       ? ScrollBar.vertical.width + ScrollBar.vertical.anchors.margins * 2
-                                       : 0
+        property int scrollbar_margin: ScrollBar.vertical && ScrollBar.vertical.parent === this ? ScrollBar.vertical.width + ScrollBar.vertical.anchors.margins * 2 : 0
 
         topMargin: margins
         leftMargin: margins
@@ -46,50 +75,27 @@ Rectangle {
 
         highlightFollowsCurrentItem: false
         displaced: Transition {
-            NumberAnimation { properties: "x,y"; duration: 300; easing.type: Easing.OutCubic}
+            NumberAnimation {
+                properties: "x,y"
+                duration: 300
+                easing.type: Easing.OutCubic
+            }
         }
         move: Transition {
-            NumberAnimation { properties: "x,y"; duration: 300; easing.type: Easing.OutCubic}
+            NumberAnimation {
+                properties: "x,y"
+                duration: 300
+                easing.type: Easing.OutCubic
+            }
         }
     }
-
-    states: [
-        State {
-            name: "header_view"
-            when: root.header !== null
-            PropertyChanges {
-                target: root.header
-                anchors.margins: root.padding
-                anchors.bottomMargin: 0
-
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-            }
-            PropertyChanges {
-                target: rootView
-                anchors.margins: root.padding
-                anchors.topMargin: root.spacing
-
-                anchors.fill: undefined
-                anchors.top: root.header.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-            }
-        }
-    ]
 
     YT_ItemSelectionModel {
         id: selectionModel
 
         model: rootView.model === null ? null : rootView.model
         getItem_ModelIndex: function (index) {
-            return rootView.itemAtIndex(index.row)
+            return rootView.itemAtIndex(index.row);
         }
     }
 }
-
-
-
-

@@ -1,7 +1,5 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 Container {

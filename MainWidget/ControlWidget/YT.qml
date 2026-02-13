@@ -1,19 +1,12 @@
 pragma Singleton
 
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
 import YT_Player
 
 QtObject {
     property int widgetIndex: 0
-    function setWidgetIndex(data) {
-        widgetIndex = data
-        data = Qt.binding(function (){return YT.widgetIndex})
-    }
-
     property YT_ScrollBarList mainScrollBar: null
+    property YT_NavigationWidget navigationWidget: null
 
     property MusicWidget musicWidget: null
     property MusicItemModel musicItemModel: null
@@ -58,5 +51,32 @@ QtObject {
         let formattedSeconds = seconds.toString().padStart(2, '0');
 
         return `${formattedMinutes}:${formattedSeconds}`;
+    }
+
+    function mapFromGlobal(_this, data, pos) {
+        const global_pos = data.mapToGlobal(pos)
+        return _this.mapFromGlobal(global_pos)
+    }
+
+    function findParent(data, type) {
+        if (data === null) return null
+        if (data instanceof type) return data
+        return findParent(data.parent, type)
+    }
+
+    component RectChangedSignal: Connections {
+        property bool is
+        function onXChanged() {
+            is = !is
+        }
+        function onYChanged() {
+            is = !is
+        }
+        function onWidthChanged() {
+            is = !is
+        }
+        function onHeightChanged() {
+            is = !is
+        }
     }
 }

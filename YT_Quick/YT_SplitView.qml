@@ -1,21 +1,20 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 SplitView {
     id: root
 
-    spacing: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+    spacing: YT_Info.Spacing
     handle: Item {
         implicitWidth: root.spacing
-        Rectangle {
+        YT_Rectangle {
             anchors.centerIn: parent
             width: parent.width - 4
             height: parent.height / 4
-            radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+            radius: YT_Info.Radius
             color: (parent.SplitHandle.hovered || parent.SplitHandle.pressed)
-                   ? YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
+                   ? YT_Info.ItemFocusColor
                    : null
         }
     }

@@ -1,6 +1,5 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 Slider {
@@ -15,12 +14,12 @@ Slider {
         height: parent.contentItem_Size
 
         radius: height / 2
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemColor)
+        color: YT_Info.ItemColor
 
         Rectangle {
             width: root.visualPosition * parent.width
             height: parent.height
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
+            color: YT_Info.ItemFocusColor
             radius: parent.radius
         }
     }

@@ -1,14 +1,12 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 Rectangle {
     id: root
-    radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-    color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-    border.color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
+    radius: YT_Info.Radius
+    color: YT_Info.BackgroundColor
+    border.color: YT_Info.ItemFocusColor
 
     property int padding: 0
     property int spacing: 0
@@ -67,7 +65,7 @@ Rectangle {
             height: parent.height
 
             sourceComponent: YT_Button {
-                padding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius_Small)
+                padding: YT_Info.MarginSmall
                 modelData: "qrc:/Resource_UI/next_page.png"
                 contentItem: YT_Button.LoadImage {}
                 background: null
@@ -85,12 +83,8 @@ Rectangle {
                 // }
             }
         }
-        contentItem: Text {
+        contentItem: YT_Text {
             text: model.display
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
-
-            horizontalAlignment: Text.AlignLeft
-            verticalAlignment: Text.AlignVCenter
         }
     }
 

@@ -1,7 +1,5 @@
 import QtQuick
-import QtQuick.Layouts
 import QtQuick.Controls
-
 import YT_Player
 
 Window {
@@ -15,6 +13,7 @@ Window {
     // Component.onCompleted: width = rootWidget.width
 
     YT_TransformWindow {
+        target: Window.window
         enabled_type: 0
     }
     Rectangle {
@@ -22,10 +21,10 @@ Window {
         width: controlWidget.empty ? height : controlWidget.implicitWidth
         // width: parent.width
         height: parent.height
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+        color: YT_Info.BackgroundColor
+        radius: YT_Info.Radius
         // border.width: 2
-        border.color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
+        border.color: YT_Info.ItemFocusColor
 
         Behavior on width {
             id: rootBackgroundAnimation
@@ -57,7 +56,7 @@ Window {
 
         parent: rootBackground
         anchors.fill: parent
-        anchors.margins: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius_Small)
+        anchors.margins: YT_Info.MarginSmall
         implicitWidth: currentItem.implicitWidth + anchors.margins * 2
 
         initialItem : musicControl

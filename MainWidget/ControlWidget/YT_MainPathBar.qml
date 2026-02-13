@@ -1,6 +1,4 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
 import YT_Player
 
 Item {
@@ -15,8 +13,8 @@ Item {
         implicitWidth: parent.height
         implicitHeight: parent.height
 
-        background.anchors.margins: rootPadding
-        padding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
+        inset: root.rootPadding
+        padding: YT_Info.Margin
 
         modelData: YT.widgetModel.get(currentIndex).logo_path
         contentItem: YT_Button.LoadImage {}
@@ -37,7 +35,7 @@ Item {
         model: YT.widgetModel.get(currentIndex).widget_curPath
         delegate: pathBar_Delegate
         onModelChanged: {
-            view.positionViewAtEnd()
+            view.positionViewAtEnd();
         }
     }
 
@@ -48,16 +46,17 @@ Item {
         readonly property int indicator_implicit: pathBar.implicitHeight * 0.4
 
         modelData: model.modelData
-        padding: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius_Small)
+        padding: YT_Info.MarginSmall
         implicitWidth: contentItem.implicitWidth + indicator_implicit + horizontalPadding * 2
         implicitHeight: pathBar.implicitHeight
 
+        topInset: rootPadding
+        bottomInset: rootPadding
         background.opacity: (hovered || down || pathBar_Menu.parent === this)
-        background.anchors.topMargin: rootPadding
-        background.anchors.bottomMargin: rootPadding
+
         contentItem: YT_Button.LoadText {
-            font.pointSize: parent.font.pointSize - 2
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
+            font.pointSize: Qt.application.font.pointSize - 2
+            color: YT_Info.FontColor
         }
         indicator: YT_Button {
             enabled: false
@@ -73,45 +72,56 @@ Item {
         }
 
         signal_YT: true
-        onClicked_YT: function(eventPoint, button) {
+        onClicked_YT: function (eventPoint, button) {
+            const widget = YT.widgetModel.get(currentIndex).widget;
             if (button === Qt.LeftButton) {
-                const widget = YT.widgetModel.get(currentIndex).widget
-                widget.setCurPath(pathBar.model.slice(0, index + 1))
+                widget.setCurPath(pathBar.model.slice(0, index + 1));
             } else if (button === Qt.RightButton) {
-                const widget = YT.widgetModel.get(currentIndex).widget
-                pathBar_Menu.model = widget.getSubPath(pathBar.model.slice(0, index + 1))
-                pathBar_Menu.open_YT(pathBar_Delegate)
+                pathBar_Menu.model = null;
+                pathBar_Menu.delegateSize = 0;
+                pathBar_Menu.model = widget.getSubPath(pathBar.model.slice(0, index + 1));
+                pathBar_Menu.open_YT(pathBar_Delegate);
             }
         }
     }
 
     YT_PopupList {
         id: pathBar_Menu
-        property int delegateWidth: 0
+        property int delegateSize: 0
+        width: Math.max(delegateSize + padding * 2, parent ? parent.width : 0)
 
-        x: 0
-        y: parent ? parent.height + true * 2 : 0
-        width: Math.max(delegateWidth, parent ? parent.width : 0)
-        height: contentItem.implicitHeight * Math.min(5, contentItem.count) / contentItem.count
+        // exit: null
+        // enter: null
+        // popupType: YT_PopupList.Window
 
         model: null
-        onModalChanged: delegateWidth = 0
         onClosed: parent = null
 
-        delegate: YT_PopupList.YT_PopupList_Delegate {
+        delegate: YT_Button {
+            required property int index
+            required property var model
+
+            indicator: null
+            background: null
+            contentItem: YT_Button.LoadText {}
+
             modelData: model.modelData
             width: parent ? parent.width : 0
             onImplicitWidthChanged: {
-                pathBar_Menu.delegateWidth = Math.max(pathBar_Menu.delegateWidth, implicitWidth)
+                pathBar_Menu.delegateSize = Math.max(pathBar_Menu.delegateSize, implicitWidth);
+            }
+            onHoveredChanged: {
+                if (hovered)
+                    ListView.view.currentIndex = index;
             }
             onClicked: {
-                const index = pathBar_Menu.parent.index
-                const widget = YT.widgetModel.get(currentIndex).widget
-                var path = pathBar.model.slice(0, index + 1)
-                path.push(modelData)
+                const index = pathBar_Menu.parent.index;
+                const widget = YT.widgetModel.get(currentIndex).widget;
+                var path = pathBar.model.slice(0, index + 1);
+                path.push(modelData);
 
-                widget.setCurPath(path)
-                pathBar_Menu.close()
+                widget.setCurPath(path);
+                pathBar_Menu.close();
             }
         }
     }
@@ -119,28 +129,30 @@ Item {
     TapHandler {
         parent: pathBar.view
         onTapped: {
-            editDelegate.open_YT(root, editDelegate.acceptedFunction, null)
+            editDelegate.text = editDelegate.getPathData();
+            editDelegate.open_YT(root, editDelegate.acceptedFunction, null);
         }
     }
 
     YT_EditDelegate {
         id: editDelegate
 
-        text: {
-            var path = ""
-            for (var it of pathBar.model)
-                path += it + "/"
-            return path
-        }
-
+        text: getPathData()
         padding: rootPadding
         topInset: padding
         leftInset: padding
         rightInset: padding
         bottomInset: padding
+        editItem.font.pointSize: Qt.application.font.pointSize - 2
 
-        function acceptedFunction(data) {
-            YT.widgetModel.get(currentIndex).widget.setCurPath(data["acceptData"])
+        function getPathData() {
+            var data = "";
+            for (var it of pathBar.model)
+                data += it + "/";
+            return data;
+        }
+        function acceptedFunction(data, user_data) {
+            YT.widgetModel.get(currentIndex).widget.setCurPath(data);
         }
     }
 }

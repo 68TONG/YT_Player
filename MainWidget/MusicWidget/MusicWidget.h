@@ -2,7 +2,6 @@
 #define MUSICWIDGET_H
 
 #include <YT_GeneralH.h>
-#include <Music_DataBase.h>
 #include <MusicItemModel.h>
 #include <MusicListModel.h>
 
@@ -13,58 +12,44 @@ class MusicWidget : public QQuickItem
 
     friend MusicItemModel;
     friend MusicListModel;
-    Q_PROPERTY(MusicItemModel *itemModel READ getItemModel CONSTANT)
-    Q_PROPERTY(MusicListModel *listModel READ getListModel CONSTANT)
-    Q_PROPERTY(QList<QString> curPath READ getCurPath NOTIFY curPathChanged)
-    Q_PROPERTY(int curListInfoID READ getCurListInfoID WRITE setCurListInfoID NOTIFY curListInfoIDChanged)
-    Q_PROPERTY(int curPlayIndex READ getCurPlayIndex NOTIFY curPlayIndexChanged)
-    Q_PROPERTY(QList<QString> itemHeaderModel READ getItemHeaderModel NOTIFY itemHeaderModelChanged)
-    Q_PROPERTY(QString metaData_Title MEMBER metaData_Title CONSTANT)
-    Q_PROPERTY(QString metaData_One MEMBER metaData_One NOTIFY metaData_OneChanged)
-    Q_PROPERTY(QString metaData_Two MEMBER metaData_Two NOTIFY metaData_TwoChanged)
+
 public:
     explicit MusicWidget(QQuickItem *parent = nullptr);
 
     Q_INVOKABLE void playMusic(int ids_index);
     Q_INVOKABLE void addPlayMusic(const QString &path);
+    Q_INVOKABLE void addPlayMusic(const QList<QString> &path);
+
 protected:
+    Q_PROPERTY(MusicItemModel *itemModel READ getItemModel CONSTANT)
     MusicItemModel itemModel;
-    MusicItemModel *getItemModel() { return &itemModel;}
+    MusicItemModel *getItemModel() { return &itemModel; }
 
+    Q_PROPERTY(MusicListModel *listModel READ getListModel CONSTANT)
     MusicListModel listModel;
-    MusicListModel *getListModel() { return &listModel;}
+    MusicListModel *getListModel() { return &listModel; }
 
+    Q_PROPERTY(QList<QString> curPath READ getCurPath NOTIFY curPathChanged)
     QList<QString> curPath;
     QList<QString> getCurPath() const { return curPath; }
     Q_INVOKABLE void setCurPath(const QString &data);
     Q_INVOKABLE void setCurPath(const QList<QString> &data);
-    Q_INVOKABLE void addPath_FilterInfo(const QString &data, const QString &header);
-    Q_INVOKABLE void addPath_SearchInfo(const QString &data);
+    Q_INVOKABLE void addCurPath(const QString &data);
     Q_INVOKABLE QList<QString> getSubPath(const QList<QString> &data) const;
+    Q_SIGNAL void curPathChanged();
 
-    int curListInfoID = 0;
-    int getCurListInfoID() const;
-    void setCurListInfoID(const int &data);
+    Q_PROPERTY(QString curListInfoID READ getCurListInfoID WRITE setCurListInfoID NOTIFY curListInfoIDChanged)
+    QString curListInfoID;
+    QString getCurListInfoID() const;
+    void setCurListInfoID(const QString &data);
+    Q_SIGNAL void curListInfoIDChanged();
 
+    Q_PROPERTY(int curPlayIndex READ getCurPlayIndex NOTIFY curPlayIndexChanged)
     int curPlayIndex = -true;
     int getCurPlayIndex() const;
-    void setCurPlayIndex(const QString &path);
-
-    QList<QString> itemHeaderModel = {"Title", "Artist", "Album"};
-    QList<QString> getItemHeaderModel() const { return itemHeaderModel; }
-
-    QString metaData_Title = Media::MetaData_Title;
-    QString metaData_One = Media::MetaData_Artist;
-    QString metaData_Two = Media::MetaData_Album;
+    void setCurPlayIndex(const QString &data);
+    Q_SIGNAL void curPlayIndexChanged();
 signals:
-    void curPathChanged();
-    void curMusicPathChanged();
-    void curMusicPtsChanged();
-    void curListInfoIDChanged();
-    void curPlayIndexChanged();
-    void itemHeaderModelChanged();
-    void metaData_OneChanged();
-    void metaData_TwoChanged();
 };
 
 #endif // MUSICWIDGET_H

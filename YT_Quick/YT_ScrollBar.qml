@@ -1,6 +1,5 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 ScrollBar {
@@ -12,7 +11,7 @@ ScrollBar {
         implicitHeight: 100
 
         radius: width / 2
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
+        color: YT_Info.ItemFocusColor
         opacity: root.policy === ScrollBar.AlwaysOn || (root.active && root.size < 1.0) ? 0.75 : 0
 
         Behavior on opacity {

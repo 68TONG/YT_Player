@@ -11,7 +11,7 @@ FileItemModel::FileItemModel(QObject *parent)
     };
     connect(this, &FileItemModel::currentDirChanged, this, [this](){
         auto removePaths = modelWatcher.files() + modelWatcher.directories();
-        if(removePaths.count()) modelWatcher.removePaths(removePaths);
+        if (removePaths.count()) modelWatcher.removePaths(removePaths);
         modelWatcher.addPath(currentDir);
     });
     connect(&modelWatcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString &path){
@@ -96,7 +96,7 @@ void FileItemModel::setCurrentDir(const QString &path)
     if(is_Hidden) list_filter = QDir::Hidden | list_filter;
     fileInfo_List = dir.entryInfoList(list_filter, QDir::Name);
 
-    if(path != currentDir) {
+    if (path != currentDir) {
         currentDir = path;
         emit currentDirChanged();
     }

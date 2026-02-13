@@ -1,12 +1,9 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
-import YT_Player
 
 ItemSelectionModel {
     id: root
 
-    required property var getItem_ModelIndex
+    property var getItem_ModelIndex: null
     function selectItem(index = -1, modifiers = Qt.NoModifier) {
         var model_index = model.index(index, 0)
         if(model_index.isValid === false) {
@@ -35,6 +32,7 @@ ItemSelectionModel {
 
     // onSelectedIndexesChanged: console.log(selectedIndexes)
     onSelectionChanged: function(selected, deselected) {
+        if (getItem_ModelIndex === null) return
         function rangesToRowIndexes(range_list) {
             var indexs = [];
             for (const range of range_list) {
@@ -44,7 +42,6 @@ ItemSelectionModel {
             }
             return indexs;
         }
-
 
         {
             const index_list = rangesToRowIndexes(selected)

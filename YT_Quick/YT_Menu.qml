@@ -1,17 +1,27 @@
 import QtQuick
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 Menu {
     id: root
 
-    implicitWidth: 200
-    implicitHeight: contentItem.implicitHeight + padding * 2
+    width: delegateWidth + padding * 2
+    height: delegateHeight + padding * 2
 
-    property alias radius: rootBackground.radius
-    padding: radius
-    overlap: -radius / 2
+    property int delegateWidth: 0
+    property int delegateHeight: 0
+    onAboutToShow: {
+        delegateWidth = delegateHeight = 0;
+        for (var i = 0; i < count; i++) {
+            const it = root.itemAt(i);
+            delegateWidth = Math.max(delegateWidth, it.implicitWidth);
+            delegateHeight = delegateHeight + it.implicitHeight;
+        }
+    }
+
+    property int radius: YT_Info.Radius
+    padding: YT_Info.Margin
+    overlap: -padding / 2
 
     property alias model: instantiator.model
     readonly property Instantiator instantiator: Instantiator {
@@ -19,55 +29,63 @@ Menu {
         model: null
         delegate: root.delegate
         onObjectAdded: function (index, object) {
-            root.insertItem(index, object)
+            root.insertItem(index, object);
         }
         onObjectRemoved: function (index, object) {
-            root.removeItem(object)
+            root.removeItem(object);
         }
     }
 
+    readonly property YT_FollowBackground followBackground: YT_FollowBackground {
+        parent: root.contentItem.contentItem
+        followItem: root.itemAt(root.currentIndex)
+    }
+
     component YT_MenuItem: MenuItem {
-        padding: 4
+        verticalPadding: YT_Info.MarginSmall
+        horizontalPadding: YT_Info.Margin
+
         background: null
-        contentItem: Text {
+        contentItem: YT_Text {
             text: parent.text
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignLeft
         }
     }
 
     delegate: YT_MenuItem {}
     background: Rectangle {
-        id: rootBackground
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.BackgroundColor)
-        border.color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
-
-        Rectangle {
-            id: hoveredItemBackground
-
-            property Item currentItem: currentIndex > -true ? root.itemAt(currentIndex) : null
-            x: currentItem ? currentItem.x + root.padding : 0
-            y: currentItem ? currentItem.y + root.padding : 0
-            width: currentItem ? currentItem.width : 0
-            height: currentItem ? currentItem.height : 0
-
-            radius: parent.radius
-            color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
-            Behavior on y {
-                NumberAnimation {
-                    duration: 200
-                    easing.type: Easing.InOutQuad // 动画的缓动类型
-                }
-            }
-        }
+        radius: root.radius
+        color: YT_Info.BackgroundColor
+        border.color: YT_Info.ItemFocusColor
+    }
+    contentItem: ListView {
+        model: root.contentModel
+        implicitWidth: contentItem/*.childrenRect*/.width
+        implicitHeight: contentItem/*.childrenRect*/.height
     }
 
     enter: Transition {
-        NumberAnimation { property: "opacity"; duration: 300; from: 0.0; to: 1.0; easing.type: Easing.OutQuad}
+        NumberAnimation {
+            property: "height"
+            duration: 300
+            from: 0.0
+            to: root.height
+            easing.type: Easing.OutQuad
+        }
+        NumberAnimation {
+            property: "opacity"
+            duration: 300
+            from: 0.0
+            to: 1.0
+            easing.type: Easing.OutQuad
+        }
     }
     exit: Transition {
-        NumberAnimation { property: "opacity"; duration: 300; from: 1.0; to: 0.0; easing.type: Easing.OutQuad}
+        NumberAnimation {
+            property: "opacity"
+            duration: 300
+            from: 1.0
+            to: 0.0
+            easing.type: Easing.OutQuad
+        }
     }
 }

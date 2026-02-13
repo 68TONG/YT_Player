@@ -1,11 +1,19 @@
 import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls.Basic
-
+import QtQuick.Controls
 import YT_Player
 
 Button {
     id: root
+
+    property int inset: 0
+    topInset: inset
+    leftInset: inset
+    rightInset: inset
+    bottomInset: inset
+
+    padding: YT_Info.MarginSmall
+    verticalPadding: padding
+    horizontalPadding: padding
 
     property string modelData
     component LoadImage: Image {
@@ -16,46 +24,26 @@ Button {
         source: parent.modelData
         fillMode: Image.PreserveAspectFit
     }
-    component LoadText: Text {
+    component LoadText: YT_Text {
         text: parent.modelData
-        color: link_hovered ? "#FFD700" : YT_ConfigureInfo.getData(YT_ConfigureInfo.FontColor)
-        font.underline: link_hovered
+    }
+    component LoadSelectIndicator: Image {
+        visible: parent.selected
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
 
-        horizontalAlignment: Text.AlignLeft
-        verticalAlignment: Text.AlignVCenter
+        anchors.margins: parent.verticalPadding + 2
+        anchors.rightMargin: parent.horizontalPadding
 
-        property bool link_YT: false
-        property bool link_hovered: false
-        MouseArea {
-            x: parent.leftPadding
-            y: parent.topPadding
-            width: parent.contentWidth
-            height: parent.contentHeight
-            enabled: parent.link_YT
-            hoverEnabled: true
-            // Rectangle {
-            //     anchors.fill: parent
-            //     color: "red"
-            //     opacity: 0.5
-            // }
-
-            onEntered: parent.link_hovered = true
-            onExited: parent.link_hovered = false
-            onClicked: parent.linkActivated(parent.text)
-        }
+        smooth: true
+        source: "qrc:/Resource_UI/ok.png"
+        fillMode: Image.PreserveAspectFit
     }
 
-    background: Rectangle {
-        anchors.fill: parent
-        radius: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemRadius)
-        color: YT_ConfigureInfo.getData(YT_ConfigureInfo.ItemFocusColor)
-
+    background: YT_Rectangle {
+        color: YT_Info.ItemFocusColor
         opacity: (parent.hovered || parent.down)
-        visible: opacity !== 0
-
-        Behavior on opacity {
-            NumberAnimation { duration: 300; easing.type: Easing.OutInQuad}
-        }
     }
 
     property bool signal_YT: false
@@ -63,7 +51,7 @@ Button {
         enabled: signal_YT
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onTapped: function (eventPoint, button) {
-            root.clicked_YT(eventPoint, button)
+            root.clicked_YT(eventPoint, button);
         }
     }
     signal clicked_YT(eventPoint eventPoint, int button)

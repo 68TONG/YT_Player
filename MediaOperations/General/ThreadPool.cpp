@@ -13,8 +13,10 @@ ThreadPool::~ThreadPool()
         run_condition.notify_all();
     }
 
-    for (auto &&it : threads) {
-        if (it->joinable()) {
+    for (auto &&it : threads)
+    {
+        if (it->joinable())
+        {
             it->join();
             delete it;
         }
@@ -30,7 +32,8 @@ ThreadPool &ThreadPool::getObject()
 
 void ThreadPool::setThreads(int count)
 {
-    for(int i = threads.size();i < count;i++){
+    for (int i = threads.size(); i < count; i++)
+    {
         threads.push_back(new std::thread(ThreadWorker(this, i)));
     }
 }
@@ -39,9 +42,11 @@ void ThreadPool::updateTaskQueue()
 {
     std::lock_guard<std::mutex> l(set_value_mutex);
 
-    for(auto task_id = task_wait_list.begin();task_id != task_wait_list.end();){
+    for (auto task_id = task_wait_list.begin(); task_id != task_wait_list.end();)
+    {
         TaskQueue &task_queue = taskqueue_list[*task_id];
-        if(task_queue.task_need_count > (threads.size() - alloc_task)){
+        if (task_queue.task_need_count > (threads.size() - alloc_task))
+        {
             task_id++;
             continue;
         }
@@ -59,7 +64,8 @@ void ThreadPool::updateTaskQueue()
 void ThreadPool::waitTask(int task_id)
 {
     int sic = true;
-    while(sic){
+    while (sic)
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         std::lock_guard<std::mutex> l(set_value_mutex);
         sic = taskqueue_list.find(task_id) != taskqueue_list.end();
@@ -92,17 +98,21 @@ ThreadPool::ThreadWorker::ThreadWorker(ThreadPool *par, int id)
 void ThreadPool::ThreadWorker::operator()()
 {
     std::function<void()> func;
-    while(parent->abort == false){
+    while (parent->abort == false)
+    {
         std::unique_lock<std::mutex> l(parent->set_value_mutex);
         int task_queue_index = -1;
-        for(auto task_id = parent->task_run_list.begin();task_id != parent->task_run_list.end();task_id++){
+        for (auto task_id = parent->task_run_list.begin(); task_id != parent->task_run_list.end(); task_id++)
+        {
             TaskQueue &task_queue = parent->taskqueue_list[*task_id];
-            if(task_queue.task_que.empty()) continue;
+            if (task_queue.task_que.empty())
+                continue;
 
             task_queue_index = *task_id;
             break;
         }
-        if(task_queue_index == -1){
+        if (task_queue_index == -1)
+        {
             // std::cout << "previous " << std::this_thread::get_id() << ' ' << parent->abort << std::endl;
             parent->run_condition.wait(l);
             // std::cout << "next " << std::this_thread::get_id() << ' ' << parent->abort << std::endl;
@@ -119,8 +129,10 @@ void ThreadPool::ThreadWorker::operator()()
         l.lock();
         parent->alloc_task--;
         task_queue.task_finish_count++;
-        if(task_queue.task_que.empty() && task_queue.task_need_count == task_queue.task_finish_count){
-            if(task_queue.task_release != NULL) task_queue.task_release();
+        if (task_queue.task_que.empty() && task_queue.task_need_count == task_queue.task_finish_count)
+        {
+            if (task_queue.task_release != NULL)
+                task_queue.task_release();
             parent->task_run_list.erase(task_queue.task_id);
             parent->taskqueue_list.erase(task_queue.task_id);
         }
@@ -129,5 +141,3 @@ void ThreadPool::ThreadWorker::operator()()
         parent->updateTaskQueue();
     }
 }
-
-
