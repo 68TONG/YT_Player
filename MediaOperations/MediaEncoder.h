@@ -1,6 +1,7 @@
 #ifndef MEDIAENCODER_H
 #define MEDIAENCODER_H
 
+#include <ThreadPool.h>
 #include <AudioBuffer.h>
 #include <VideoBuffer.h>
 #include <MediaDecoder.h>
