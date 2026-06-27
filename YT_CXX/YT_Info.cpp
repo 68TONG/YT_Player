@@ -2,8 +2,8 @@
 
 YT_Info YT_Info::object;
 
-YT_Info::YT_Info(QObject *parent)
-    : QObject{parent}
+YT_Info::YT_Info(QObject* parent)
+    : QObject{ parent }
 {
     QDir().mkpath("./YT_PlayerData");
     QDir().mkpath("./YT_PlayerCache");
@@ -36,33 +36,33 @@ YT_Info::YT_Info(QObject *parent)
     if (json.isEmpty())
         return;
 
-    static const auto fromJson = [](void *P, QJsonValue &&J, QMetaType &&T)
-    {
-        if (T.id() == QMetaType::Int)
+    static const auto fromJson = [](void* P, QJsonValue&& J, QMetaType&& T)
         {
-            *(int *)P = J.toInt();
-        }
-        else if (T.id() == QMetaType::QSize)
-        {
-            auto p = (QSize *)P;
-            const auto json_value = J.toObject();
-            p->setWidth(json_value.value("Width").toInt());
-            p->setHeight(json_value.value("Height").toInt());
-        }
-        else if (T.id() == QMetaType::QColor)
-        {
-            auto p = (QColor *)P;
-            const auto json_value = J.toObject();
-            p->setRed(json_value.value("Red").toInt());
-            p->setBlue(json_value.value("Blue").toInt());
-            p->setGreen(json_value.value("Green").toInt());
-            p->setAlpha(json_value.value("Alpha").toInt());
-        }
-        else if (T.id() == QMetaType::QVariantList)
-        {
-            *(QVariantList *)P = J.toArray().toVariantList();
-        }
-    };
+            if (T.id() == QMetaType::Int)
+            {
+                *(int*)P = J.toInt();
+            }
+            else if (T.id() == QMetaType::QSize)
+            {
+                auto p = (QSize*)P;
+                const auto json_value = J.toObject();
+                p->setWidth(json_value.value("Width").toInt());
+                p->setHeight(json_value.value("Height").toInt());
+            }
+            else if (T.id() == QMetaType::QColor)
+            {
+                auto p = (QColor*)P;
+                const auto json_value = J.toObject();
+                p->setRed(json_value.value("Red").toInt());
+                p->setBlue(json_value.value("Blue").toInt());
+                p->setGreen(json_value.value("Green").toInt());
+                p->setAlpha(json_value.value("Alpha").toInt());
+            }
+            else if (T.id() == QMetaType::QVariantList)
+            {
+                *(QVariantList*)P = J.toArray().toVariantList();
+            }
+        };
 
     fromJson(&FontColor, json.value(FontColorName()), FontColorType());
     fromJson(&FontFocusColor, json.value(FontFocusColorName()), FontFocusColorType());
@@ -93,37 +93,37 @@ YT_Info::YT_Info(QObject *parent)
 YT_Info::~YT_Info()
 {
     QJsonObject json;
-    static const auto toJson = [](void *P, QMetaType &&T) -> QJsonValue
-    {
-        if (T.id() == QMetaType::Int)
+    static const auto toJson = [](void* P, QMetaType&& T) -> QJsonValue
         {
-            return *(int *)P;
-        }
-        else if (T.id() == QMetaType::QSize)
-        {
-            auto p = (QSize *)P;
-            QJsonObject json_value;
-            json_value.insert("Width", p->width());
-            json_value.insert("Height", p->height());
-            return json_value;
-        }
-        else if (T.id() == QMetaType::QColor)
-        {
-            auto p = (QColor *)P;
-            QJsonObject json_value;
-            json_value.insert("Red", p->red());
-            json_value.insert("Blue", p->blue());
-            json_value.insert("Green", p->green());
-            json_value.insert("Alpha", p->alpha());
-            return json_value;
-        }
-        else if (T.id() == QMetaType::QVariantList)
-        {
-            QVariant json_value = *(QVariantList *)P;
-            return json_value.toJsonValue();
-        }
-        return {};
-    };
+            if (T.id() == QMetaType::Int)
+            {
+                return *(int*)P;
+            }
+            else if (T.id() == QMetaType::QSize)
+            {
+                auto p = (QSize*)P;
+                QJsonObject json_value;
+                json_value.insert("Width", p->width());
+                json_value.insert("Height", p->height());
+                return json_value;
+            }
+            else if (T.id() == QMetaType::QColor)
+            {
+                auto p = (QColor*)P;
+                QJsonObject json_value;
+                json_value.insert("Red", p->red());
+                json_value.insert("Blue", p->blue());
+                json_value.insert("Green", p->green());
+                json_value.insert("Alpha", p->alpha());
+                return json_value;
+            }
+            else if (T.id() == QMetaType::QVariantList)
+            {
+                QVariant json_value = *(QVariantList*)P;
+                return json_value.toJsonValue();
+            }
+            return {};
+        };
 
     json.insert(FontColorName(), toJson(&FontColor, FontColorType()));
     json.insert(FontFocusColorName(), toJson(&FontFocusColor, FontFocusColorType()));
@@ -153,12 +153,12 @@ YT_Info::~YT_Info()
     writeJsonObjectToFile(InfoPath, json);
 }
 
-YT_Info &YT_Info::getObject()
+YT_Info& YT_Info::getObject()
 {
     return object;
 }
 
-YT_Info *YT_Info::create(QQmlEngine *, QJSEngine *)
+YT_Info* YT_Info::create(QQmlEngine*, QJSEngine*)
 {
     QJSEngine::setObjectOwnership(&object, QJSEngine::CppOwnership);
     return &object;

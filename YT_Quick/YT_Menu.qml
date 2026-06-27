@@ -29,7 +29,7 @@ Menu {
         model: null
         delegate: root.delegate
         onObjectAdded: function (index, object) {
-            root.insertItem(index, object);
+            root.addItem(object);
         }
         onObjectRemoved: function (index, object) {
             root.removeItem(object);
@@ -44,10 +44,50 @@ Menu {
     component YT_MenuItem: MenuItem {
         verticalPadding: YT_Info.MarginSmall
         horizontalPadding: YT_Info.Margin
+        implicitWidth: implicitContentWidth + leftPadding + rightPadding
+        implicitHeight: implicitContentHeight + topPadding + bottomPadding
 
+        indicator: null
         background: null
         contentItem: YT_Text {
             text: parent.text
+        }
+    }
+
+    component YT_MenuInputItem: YT_MenuItem {
+        property string placeholderText: ""
+
+        text: contentItem.text
+        contentItem: YT_TextInput {
+            padding: 0
+            background: null
+            placeholderText: parent.placeholderText
+        }
+    }
+
+    component YT_MenuSelectItem: YT_MenuItem {
+        required property bool selected
+
+        indicator: YT_Indicator {
+            enabled: false
+            visible: parent.selected
+            edgeType: Qt.RightEdge
+            modelData: "qrc:/Ui_Image/ok.png"
+            background: null
+        }
+        contentItem: YT_Text {
+            text: parent.text
+        }
+    }
+
+    component YT_MenuSeparator: MenuSeparator {
+        width: parent ? parent.width : 0
+        height: +true + verticalPadding * 2
+        verticalPadding: YT_Info.MarginSmall
+        horizontalPadding: YT_Info.Margin
+
+        contentItem: Rectangle {
+            color: YT_Info.ItemFocusColor
         }
     }
 

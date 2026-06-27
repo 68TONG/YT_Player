@@ -10,6 +10,11 @@ class YT_Window : public QQuickWindow
     QML_ELEMENT
 public:
     YT_Window();
+
+    Q_INVOKABLE void centerToScreen();
+    Q_INVOKABLE void centerToParent();
+    Q_INVOKABLE void centerToWindow(QWindow* targetWindow);
+
 protected:
 signals:
 };

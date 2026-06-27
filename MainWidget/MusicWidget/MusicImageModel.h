@@ -8,7 +8,8 @@ class MusicImageModel : public QQuickImageProvider
 
 public:
     explicit MusicImageModel();
-
-    virtual QImage requestImage(const QString& id, QSize* size, const QSize& requestedSize) override;
-signals:
+    virtual QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;
+private: 
+    QString outputCoverCache(const int info_id);
+    inline static const QString cacheRootPath = "./YT_PlayerCache/MusicImage/";
 };

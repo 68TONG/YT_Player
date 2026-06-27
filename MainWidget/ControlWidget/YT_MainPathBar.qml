@@ -16,7 +16,7 @@ Item {
         inset: root.rootPadding
         padding: YT_Info.Margin
 
-        modelData: YT.widgetModel.get(currentIndex).logo_path
+        modelData: YT.widgetInfos.get(currentIndex).logoPath
         contentItem: YT_Button.LoadImage {}
     }
 
@@ -32,7 +32,7 @@ Item {
         view.spacing: rootPadding
         view.cacheBuffer: (Math.pow(2, 31) - 1)
 
-        model: YT.widgetModel.get(currentIndex).widget_curPath
+        model: YT.widgetInfos.get(currentIndex).widget_curPath
         delegate: pathBar_Delegate
         onModelChanged: {
             view.positionViewAtEnd();
@@ -66,14 +66,14 @@ Item {
             implicitHeight: parent.indicator_implicit
 
             padding: 0
-            modelData: "qrc:/Resource_UI/next_page.png"
+            modelData: "qrc:/Ui_Image/next_page.png"
             contentItem: YT_Button.LoadImage {}
             background: null
         }
 
         signal_YT: true
         onClicked_YT: function (eventPoint, button) {
-            const widget = YT.widgetModel.get(currentIndex).widget;
+            const widget = YT.widgetInfos.get(currentIndex).widget;
             if (button === Qt.LeftButton) {
                 widget.setCurPath(pathBar.model.slice(0, index + 1));
             } else if (button === Qt.RightButton) {
@@ -116,7 +116,7 @@ Item {
             }
             onClicked: {
                 const index = pathBar_Menu.parent.index;
-                const widget = YT.widgetModel.get(currentIndex).widget;
+                const widget = YT.widgetInfos.get(currentIndex).widget;
                 var path = pathBar.model.slice(0, index + 1);
                 path.push(modelData);
 
@@ -152,7 +152,7 @@ Item {
             return data;
         }
         function acceptedFunction(data, user_data) {
-            YT.widgetModel.get(currentIndex).widget.setCurPath(data);
+            YT.widgetInfos.get(currentIndex).widget.setCurPath(data);
         }
     }
 }

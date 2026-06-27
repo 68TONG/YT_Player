@@ -14,6 +14,12 @@ Rectangle {
             easing.type: Easing.OutInQuad
         }
     }
+    Behavior on border.color {
+        ColorAnimation {
+            duration: root.animationDuration
+            easing.type: Easing.OutInQuad
+        }
+    }
     Behavior on opacity {
         NumberAnimation {
             duration: root.animationDuration

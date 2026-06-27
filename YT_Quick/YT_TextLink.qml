@@ -8,8 +8,12 @@ Text {
     font.underline: hovered
 
     property bool hovered: false
+    property bool hoverEnabled: true
+    property alias mouseArea: mouseArea
+    
     MouseArea {
-        hoverEnabled: true
+        id: mouseArea
+        hoverEnabled: root.hoverEnabled
         x: parent.leftPadding
         y: parent.topPadding
         width: parent.contentWidth

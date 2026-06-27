@@ -8,17 +8,7 @@
 #include <QSqlDatabase>
 
 namespace DB {
-    static const QString I_IsValid = "1";
-    static const QString I_FileInfo_ID = "ID";
-    static const QString I_FileInfo_Path = "Path";
-    static const QString I_FileInfo_Tags = "Tags";
-
-    static const QString I_ListInfo_Name = "Name";
-    static const QString I_ListInfo_FileInfoIds = "FileInfoIds";
-    static const QString I_ListInfo_SortTag = "SortTag";
-    static const QString I_ListInfo_SelectTag = "SelectTag";
-
-    inline QString canonicalPath(const QString &path) {
+    inline QString canonicalPath(const QString& path) {
         return QFileInfo(path).canonicalFilePath();
     }
 
@@ -92,81 +82,83 @@ class DB_FileInfo
 {
 public:
     DB_FileInfo() {}
-    DB_FileInfo(QString Path)
-        : Path(Path) {
+    DB_FileInfo(QString filePath)
+        : filePath(filePath) {
     }
     DB_FileInfo(QSqlQuery& query) {
         DB_FileInfo::fromSqlData(query);
     }
 
-    virtual QString sqlQuery() = 0;
-    virtual QList<QVariant> toSqlData() {
+    virtual QString sqlQuery(QString table_name) const {
+        return QString("INSERT INTO %1 (%2, %3) VALUES (?, ?)")
+            .arg(table_name)
+            .arg(I_FilePath)
+            .arg(I_FileTag);
+    }
+    virtual QList<QVariant> toSqlData() const {
         QList<QVariant> data;
-        data.append(DB::canonicalPath(Path));
-        data.append(QJsonDocument(Tags).toJson());
+        data.append(DB::canonicalPath(filePath));
+        data.append(QJsonDocument(fileTag).toJson());
         return data;
     }
     virtual void fromSqlData(QSqlQuery& query) {
-        ID = query.value(DB::I_FileInfo_ID).toInt();
-        Path = query.value(DB::I_FileInfo_Path).toString();
-        Tags = QJsonDocument::fromJson(query.value(DB::I_FileInfo_Tags).toByteArray()).object();
+        Id = query.value(I_Id).toInt();
+        filePath = query.value(I_FilePath).toString();
+        fileTag = QJsonDocument::fromJson(query.value(I_FileTag).toByteArray()).object();
     }
 
-    int ID = -1;
-    QString Path = {};
-    QJsonObject Tags = {};
+    int Id = -1;
+    QString filePath = {};
+    QJsonObject fileTag = {};
+
+    inline static const QString I_IsValid = "1";
+    inline static const QString I_Id = "Id";
+    inline static const QString I_FilePath = "filePath";
+    inline static const QString I_FileTag = "fileTag";
 };
 
 class DB_ListInfo
 {
 public:
     DB_ListInfo() {}
-    DB_ListInfo(QString Name)
-        : Name(Name) {
+    DB_ListInfo(QString name)
+        : name(name) {
     }
     DB_ListInfo(QSqlQuery& query) {
         DB_ListInfo::fromSqlData(query);
     }
 
-    virtual QString sqlQuery() = 0;
-    virtual QList<QVariant> toSqlData() {
+    virtual QString sqlQuery(QString table_name) const {
+        return QString("INSERT INTO %1 (%2, %3, %4, %5) VALUES (?, ?, ?, ?)")
+            .arg(table_name)
+            .arg(I_Name)
+            .arg(I_FileInfoIds)
+            .arg(I_SortTag)
+            .arg(I_SelectTag);
+    }
+    virtual QList<QVariant> toSqlData() const {
         QList<QVariant> data;
-        data.append(Name);
-        data.append(DB::listToJsonByte<int>(FileInfoIds));
-        // QJsonArray json_FileInfoIds;
-        // for (const auto& it : FileInfoIds) {
-        //     json_FileInfoIds.append(it);
-        // }
-        // data.append(QJsonDocument(json_FileInfoIds).toJson());
-
-        data.append(SortTag);
-        data.append(DB::listToJsonByte<QString>(SelectTag));
-
-        // QJsonArray json_SelectTag;
-        // for (const auto& it : SelectTag) {
-        //     json_SelectTag.append(it);
-        // }
-        // data.append(QJsonDocument(json_SelectTag).toJson());
+        data.append(name);
+        data.append(DB::listToJsonByte<int>(fileInfoIds, QJsonDocument::Compact));
+        data.append(sortTag);
+        data.append(DB::listToJsonByte<QString>(selectTag));
         return data;
     }
     virtual void fromSqlData(QSqlQuery& query) {
-        Name = query.value(DB::I_ListInfo_Name).toString();
-        FileInfoIds = DB::listFromJsonByte<int>(query.value(DB::I_ListInfo_FileInfoIds).toByteArray());
-        // auto json_FileInfoIds = QJsonDocument::fromJson(query.value(DB::I_ListInfo_FileInfoIds).toByteArray()).array();
-        // for (const auto& it : json_FileInfoIds) {
-        //     FileInfoIds.append(it.toInt());
-        // }
-
-        SortTag = query.value(DB::I_ListInfo_SortTag).toString();
-        SelectTag = DB::listFromJsonByte<QString>(query.value(DB::I_ListInfo_SelectTag).toByteArray());
-        // auto json_SelectTag = QJsonDocument::fromJson(query.value(DB::I_ListInfo_SelectTag).toByteArray()).array();
-        // for (const auto& it : json_SelectTag) {
-        //     SelectTag.append(it.toString());
-        // }
+        name = query.value(I_Name).toString();
+        fileInfoIds = DB::listFromJsonByte<int>(query.value(I_FileInfoIds).toByteArray());
+        sortTag = query.value(I_SortTag).toString();
+        selectTag = DB::listFromJsonByte<QString>(query.value(I_SelectTag).toByteArray());
     }
 
-    QString Name = {};
-    QList<int> FileInfoIds = {};
-    QString SortTag = {};
-    QList<QString> SelectTag = {};
+    QString name = {};
+    QList<int> fileInfoIds = {};
+    QString sortTag = {};
+    QList<QString> selectTag = {};
+
+    inline static const QString I_IsValid = "1";
+    inline static const QString I_Name = "name";
+    inline static const QString I_FileInfoIds = "fileInfoIds";
+    inline static const QString I_SortTag = "sortTag";
+    inline static const QString I_SelectTag = "selectTag";
 };

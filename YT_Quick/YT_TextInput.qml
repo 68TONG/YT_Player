@@ -7,8 +7,6 @@ TextField {
     hoverEnabled: true
 
     padding: YT_Info.MarginSmall
-    leftPadding: padding
-    rightPadding: padding
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
 

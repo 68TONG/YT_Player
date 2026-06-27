@@ -155,17 +155,14 @@ QString moveFile(const QString& path, const QString& target_path, bool is_cover)
         return {};
 
     QString target_file_path;
-    if (target_info.isFile())
-    {
+    if (target_info.isFile()) {
         target_file_path = target_path;
     }
-    else if (target_info.isDir())
-    {
+    else if (target_info.isDir()) {
         QDir dir(target_path);
         target_file_path = dir.filePath(is_info.fileName());
     }
-    else
-    {
+    else {
         return {};
     }
 

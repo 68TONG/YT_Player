@@ -28,18 +28,18 @@ ApplicationWindow {
         followBackground.followItem: view.currentItem
         followBackground.radius: followBackground.width / 2
 
-        model: YT.widgetModel.count
+        model: YT.widgetInfos.count
         delegate: YT_Button {
             required property int index
-            readonly property QtObject model: YT.widgetModel.get(index)
-            readonly property string logo_path: model.logo_path
+            readonly property QtObject model: YT.widgetInfos.get(index)
+            readonly property string logoPath: model.logoPath
 
             property int implicitSize: parent.width
             implicitWidth: implicitSize
             implicitHeight: implicitSize
             padding: 5
 
-            modelData: logo_path
+            modelData: logoPath
             contentItem: YT_Button.LoadImage {}
             background: null
 

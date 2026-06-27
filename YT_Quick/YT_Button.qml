@@ -37,7 +37,7 @@ Button {
         anchors.rightMargin: parent.horizontalPadding
 
         smooth: true
-        source: "qrc:/Resource_UI/ok.png"
+        source: "qrc:/Ui_Image/ok.png"
         fillMode: Image.PreserveAspectFit
     }
 

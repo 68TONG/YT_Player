@@ -4,12 +4,13 @@
 
 MusicFileInfo::MusicFileInfo()
 {
+    {}
 }
 
-MusicFileInfo::MusicFileInfo(QString Path)
-    : DB_FileInfo(Path)
+MusicFileInfo::MusicFileInfo(QString filePath)
+    : DB_FileInfo(filePath)
 {
-    getMusicMetaData(Path, Tags);
+    getMusicMetaData(filePath, fileTag);
 }
 
 MusicFileInfo::MusicFileInfo(QSqlQuery& query)
@@ -17,12 +18,32 @@ MusicFileInfo::MusicFileInfo(QSqlQuery& query)
     MusicFileInfo::fromSqlData(query);
 }
 
-QString MusicFileInfo::sqlQuery()
+QString MusicFileInfo::sqlQuery(QString table_name) const
 {
-    return QString("INSERT INTO %1 (%2, %3) VALUES (?, ?)")
-        .arg(MusicDatabase::obj().fileInfoTableName)
-        .arg(DB::I_FileInfo_Path)
-        .arg(DB::I_FileInfo_Tags);
+    return QString("INSERT INTO %1 (%2, %3, %4, %5, %6) VALUES (?, ?, ?, ?, ?)")
+        .arg(table_name)
+        .arg(I_FilePath)
+        .arg(I_FileTag)
+        .arg(I_StarLevel)
+        .arg(I_PlayCount)
+        .arg(I_AddPlayCount);
+}
+
+QList<QVariant> MusicFileInfo::toSqlData() const
+{
+    auto&& data = DB_FileInfo::toSqlData();
+    data.append(starLevel);
+    data.append(playCount);
+    data.append(addPlayCount);
+    return data;
+}
+
+void MusicFileInfo::fromSqlData(QSqlQuery& query)
+{
+    DB_FileInfo::fromSqlData(query);
+    starLevel = query.value(I_StarLevel).toInt();
+    playCount = query.value(I_PlayCount).toInt();
+    addPlayCount = query.value(I_AddPlayCount).toInt();
 }
 
 void MusicFileInfo::getMusicMetaData(const QString& path, QJsonObject& data)
@@ -78,24 +99,16 @@ void MusicFileInfo::getMusicMetaData(AVDictionary* metadata, QJsonObject& data)
 
 MusicListInfo::MusicListInfo()
 {
+    {}
 }
 
 MusicListInfo::MusicListInfo(QString Name)
     : DB_ListInfo(Name)
 {
+    {}
 }
 
 MusicListInfo::MusicListInfo(QSqlQuery& query)
 {
     MusicListInfo::fromSqlData(query);
-}
-
-QString MusicListInfo::sqlQuery()
-{
-    return QString("INSERT INTO %1 (%2, %3, %4, %5) VALUES (?, ?, ?, ?)")
-        .arg(MusicDatabase::obj().listInfoTableName)
-        .arg(DB::I_ListInfo_Name)
-        .arg(DB::I_ListInfo_FileInfoIds)
-        .arg(DB::I_ListInfo_SortTag)
-        .arg(DB::I_ListInfo_SelectTag);
 }

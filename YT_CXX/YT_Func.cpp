@@ -18,10 +18,17 @@ YT_Func& YT_Func::getObject()
     return object;
 }
 
-YT_Func* YT_Func::create(QQmlEngine*, QJSEngine*)
+YT_Func* YT_Func::create(QQmlEngine* qml_engine, QJSEngine*)
 {
-    QJSEngine::setObjectOwnership(&getObject(), QJSEngine::CppOwnership);
-    return &getObject();
+    auto object = &getObject();
+    Q_ASSERT(qml_engine->thread() == object->thread());
+    if (object->qmlEngine)
+        Q_ASSERT(object->qmlEngine == qml_engine);
+    else
+        object->qmlEngine = qml_engine;
+
+    QJSEngine::setObjectOwnership(object, QJSEngine::CppOwnership);
+    return object;
 }
 
 void YT_Func::transformWindow(QWindow* window, int type)
@@ -32,6 +39,34 @@ void YT_Func::transformWindow(QWindow* window, int type)
 bool YT_Func::intersects(const QRectF& v1, const QRectF& v2) const
 {
     return v1.intersects(v2);
+}
+
+Q_INVOKABLE void YT_Func::sendMessage(int type, QString message, int duration)
+{
+    auto YT = qmlEngine->singletonInstance<QObject*>("YT_Player", "YT");
+    auto mainMessage = YT->property("mainMessage").value<QObject*>();
+    QVariantMap data = { {"message", message}, {"type", type}, {"duration", duration} };
+    QMetaObject::invokeMethod(mainMessage, "open", QVariant(data));
+}
+
+Q_INVOKABLE void YT_Func::sendMessage(QString message, int duration)
+{
+    sendMessage(3, message, duration);
+}
+
+Q_INVOKABLE void YT_Func::sendSuccessMessage(QString message, int duration)
+{
+    sendMessage(1, message, duration);
+}
+
+Q_INVOKABLE void YT_Func::sendWarningMessage(QString message, int duration)
+{
+    sendMessage(2, message, duration);
+}
+
+Q_INVOKABLE void YT_Func::sendErrorMessage(QString message, int duration)
+{
+    sendMessage(4, message, duration);
 }
 
 QString YT_Func::getTH_Character(const QString& data)
@@ -117,7 +152,7 @@ QByteArray YT_Func::getNetworkData(const QString& url, QThread* cur_thread)
     {
         qDebug() << "YT_Func::getNetworkData error: " << reply->errorString();
     }
-    else if (reply->isFinished() == false)
+    else if (reply->isRunning())
     {
         qDebug() << "YT_Func::getNetworkData isFinished() == false";
     }
@@ -136,7 +171,7 @@ QNetworkReply* YT_Func::getNetworkReply(const QString& url, QThread* cur_thread)
     auto reply = getNetworkManager(cur_thread)->get(request);
 
     QEventLoop loop;
-    connect(qApp, &QCoreApplication::aboutToQuit, &loop, &QEventLoop::quit);
+    // connect(qApp, &QCoreApplication::aboutToQuit, &loop, &QEventLoop::quit);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
@@ -669,7 +704,7 @@ int YT_Func::getBestMusicTag(const QList<QJsonObject>& tags, const QJsonObject& 
     return best_index;
 }
 
-void YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QString& data)
+int YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QByteArray& data)
 {
     static const auto writeMetadata = [](AVDictionary* dic, const QJsonObject& json) {
         const auto title = DB::jsTagList<QString>(json, Media::MetaData_Title).join(';').toUtf8();
@@ -714,16 +749,16 @@ void YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QString& dat
         QFile file(file_path);
         if (file.exists() && file.open(QIODevice::ReadOnly))
             return file_path.toUtf8();
-        if (file.open(QIODevice::WriteOnly) == false)
-        {
-            qDebug() << url << " NE_MediaOutput_Model::MediaEncoder_Write_YT_Data getCoverUrlData file.open(QIODevice::WriteOnly) == false";
-            return {};
-        }
 
         auto file_data = YT_Func::obj().getNetworkData(url, QThread::currentThread());
         if (file_data.isEmpty())
         {
-            qDebug() << url << " NE_MediaOutput_Model::MediaEncoder_Write_YT_Data getCoverUrlData file_data.isEmpty()";
+            qDebug() << url << " YT_Func::MediaEncoder_Write_YT_Data getCoverUrlData file_data.isEmpty()";
+            return {};
+        }
+        if (file.open(QIODevice::WriteOnly) == false)
+        {
+            qDebug() << url << " YT_Func::MediaEncoder_Write_YT_Data getCoverUrlData file.open(QIODevice::WriteOnly) == false";
             return {};
         }
 
@@ -738,7 +773,7 @@ void YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QString& dat
             auto json = QJsonDocument::fromJson(data, nullptr).object();
             if (json.isEmpty())
             {
-                qDebug() << url << " NE_MediaOutput_Model::MediaEncoder_Write_YT_Data getLyricsUrlData json Error " << json;
+                qDebug() << url << " YT_Func::MediaEncoder_Write_YT_Data getLyricsUrlData json Error " << json;
                 return {};
             }
 
@@ -766,15 +801,15 @@ void YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QString& dat
         };
 
     auto format_ctx = coder.format_ctx;
-    int sic = av_dict_set(&format_ctx->metadata, Media::MetaData_YT_Data, data.toUtf8(), 0);
+    int sic = av_dict_set(&format_ctx->metadata, Media::MetaData_YT_Data, data, 0);
     if (sic < 0)
     {
         char error[256];
         av_strerror(sic, error, sizeof(error));
-        qDebug() << "NE_MediaOutput_Model MediaEncoder_Write_YT_Data av_dict_set " << Media::MetaData_YT_Data << " " << error;
+        qDebug() << "YT_Func::MediaEncoder_Write_YT_Data av_dict_set " << Media::MetaData_YT_Data << " " << error;
     }
 
-    YT_ItemInfo::YT_InfoTag json(QJsonDocument::fromJson(data.toUtf8(), nullptr).object());
+    const auto json = QJsonDocument::fromJson(data, nullptr).object();
     writeMetadata(format_ctx->metadata, json);
 
     auto cover_url = json.find("YT_Cover_Url");
@@ -793,8 +828,9 @@ void YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QString& dat
         for (auto it : url_list)
         {
             auto data = getLyricsUrlData(it.toString());
-            if (data.isEmpty() == false)
-                coder.addLyricsStream(data);
+        if (data.isEmpty() == false)
+            coder.addLyricsStream(data);
         }
     }
+    return Media::NoneError;
 }

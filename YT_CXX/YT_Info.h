@@ -13,16 +13,17 @@
 class YT_Info : public QObject
 {
     Q_OBJECT
-    QML_ELEMENT
-    QML_SINGLETON
+        QML_ELEMENT
+        QML_SINGLETON
 
-    explicit YT_Info(QObject *parent = nullptr);
+        explicit YT_Info(QObject* parent = nullptr);
     ~YT_Info();
 
 public:
-    static YT_Info &getObject();
-    static YT_Info *create(QQmlEngine *, QJSEngine *);
-    
+    std::atomic<bool> aboutToQuit = false;
+    static YT_Info& getObject();
+    static YT_Info* create(QQmlEngine*, QJSEngine*);
+
     YT_PROPERTY_AUTO(QColor, FontColor);
     YT_PROPERTY_AUTO(QColor, FontFocusColor);
 
@@ -51,6 +52,10 @@ public:
 private:
     static YT_Info object;
     const QString InfoPath = "./YT_PlayerData/Info.json";
+    // inline static const QString P_Data = "./YT_PlayerData";
+    // inline static const QString P_Output = "./YT_PlayerOutput";
+    // inline static const QString P_Cache = "./YT_PlayerCache";
+    // inline static const QString P_Cache_MusicImage = "./YT_PlayerCache/MusicImage";
 };
 
 #endif // YT_INFO_H

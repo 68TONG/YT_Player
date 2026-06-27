@@ -66,7 +66,7 @@ Rectangle {
 
             sourceComponent: YT_Button {
                 padding: YT_Info.MarginSmall
-                modelData: "qrc:/Resource_UI/next_page.png"
+                modelData: "qrc:/Ui_Image/next_page.png"
                 contentItem: YT_Button.LoadImage {}
                 background: null
 

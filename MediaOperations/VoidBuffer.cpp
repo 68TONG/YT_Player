@@ -30,6 +30,11 @@ bool VoidBuffer::isValid() const
     return is_valid;
 }
 
+AVStream* VoidBuffer::mediaStream() const
+{
+   return media_decoder->getStream(stream_index);
+}
+
 MediaDecoder* VoidBuffer::mediaDecoder() const
 {
     return media_decoder;

@@ -1,13 +1,22 @@
 import QtQuick
 import QtQuick.Controls
+import HuskarUI.Basic
 import YT_Player
 
 FileWidget {
     id: root
 
+    readonly property list<Item> navigationWidget_Items: [controlView]
+    readonly property Item controlView: HusIconButton {
+        width: parent ? parent.width : 0
+        height: implicitHeight
+        type: HusButton.Type_Primary
+        iconSource: HusIcon.SearchOutlined
+    }
+
     curModel: itemModel
     Component.onCompleted: {
-        YT.fileWidget = this
+        YT.fileWidget = this;
     }
 
     YT_SplitView {
@@ -24,24 +33,33 @@ FileWidget {
     }
     ListModel {
         id: itemHeader_Model
-        ListElement { headerIndex: FileItemModel.FileInfoRole_Name }
-        ListElement { headerIndex: FileItemModel.FileInfoRole_Size }
-        ListElement { headerIndex: FileItemModel.FileInfoRole_Type }
+        ListElement {
+            headerIndex: FileItemModel.FileInfoRole_Name
+        }
+        ListElement {
+            headerIndex: FileItemModel.FileInfoRole_Size
+        }
+        ListElement {
+            headerIndex: FileItemModel.FileInfoRole_Type
+        }
 
         function appendHeaderIndex(index) {
-            append({"headerIndex": index})
+            append({
+                "headerIndex": index
+            });
         }
         function removeHeaderIndex(index) {
-            if(count === +true) return
+            if (count === +true)
+                return;
             for (var i = 0; i < count; i++) {
                 if (get(i).headerIndex === index) {
-                    return remove(i, +true)
+                    return remove(i, +true);
                 }
             }
         }
         function contains(index) {
             for (var i = 0; i < count; i++) {
-                if(get(i).headerIndex === index) {
+                if (get(i).headerIndex === index) {
                     return true;
                 }
             }
@@ -81,11 +99,11 @@ FileWidget {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onTapped: function (eventPoint, button) {
                 if (button === Qt.LeftButton) {
-                    itemView.selectionModel.clear()
-                } else if(button === Qt.RightButton) {
-                    itemView_Menu.popup()
+                    itemView.selectionModel.clear();
+                } else if (button === Qt.RightButton) {
+                    itemView_Menu.popup();
                 } else {
-                    return
+                    return;
                 }
             }
         }
@@ -94,7 +112,8 @@ FileWidget {
     readonly property YT_SplitView itemHeader: YT_SplitView {
         id: itemHeader
         parent: itemView
-        z: +true * 2; height: 30
+        z: +true * 2
+        height: 30
 
         Repeater {
             id: itemHeader_Repeater
@@ -122,37 +141,39 @@ FileWidget {
             text: "粘贴"
             onTriggered: {
                 if (root.operationType === "剪切") {
-                    root.move(itemModel.currentDir)
-                    root.operationPaths = null
-                    root.operationType = null
+                    root.move(itemModel.currentDir);
+                    root.operationPaths = null;
+                    root.operationType = null;
                 } else if (root.operationType === "复制") {
-                    root.copy(itemModel.currentDir)
+                    root.copy(itemModel.currentDir);
                 }
             }
         }
         Action {
             text: "剪切"
             onTriggered: {
-                const target = listView.followBackground.followItem
-                root.operationPaths = [target.filePath]
-                root.operationType = text
+                const target = listView.followBackground.followItem;
+                root.operationPaths = [target.filePath];
+                root.operationType = text;
             }
         }
         Action {
             text: "复制"
             onTriggered: {
-                const target = listView.followBackground.followItem
-                root.operationPaths = [target.filePath]
-                root.operationType = text
+                const target = listView.followBackground.followItem;
+                root.operationPaths = [target.filePath];
+                root.operationType = text;
             }
         }
         Action {
             text: "删除"
             onTriggered: {
-                const target = listView.followBackground.followItem
-                root.operationPaths = [target.filePath]
-                root.operationType = text
-                messageDialog.open_YT("确定删除", function () {root.remove()})
+                const target = listView.followBackground.followItem;
+                root.operationPaths = [target.filePath];
+                root.operationType = text;
+                messageDialog.open_YT("确定删除", function () {
+                    root.remove();
+                });
             }
         }
         onClosed: listView.followBackground.followItem = null
@@ -162,17 +183,17 @@ FileWidget {
         id: itemView_Menu
 
         function addOperationPaths() {
-            root.operationPaths = []
-            const selectedIndexes = itemView.selectionModel.selectedIndexes
+            root.operationPaths = [];
+            const selectedIndexes = itemView.selectionModel.selectedIndexes;
             if (selectedIndexes.length === 0) {
-                return false
+                return false;
             }
 
             for (const model_index of selectedIndexes) {
-                const index = model_index.row
-                root.operationPaths.push(itemModel.data(index, FileItemModel.FileInfoRole_Path))
+                const index = model_index.row;
+                root.operationPaths.push(itemModel.data(index, FileItemModel.FileInfoRole_Path));
             }
-            return true
+            return true;
         }
 
         YT_Menu {
@@ -181,14 +202,14 @@ FileWidget {
                 title: "MusicWidget"
                 model: YT.musicListModel
                 delegate: YT_Menu.YT_MenuItem {
-                    required property string infoID
-                    text: infoID
+                    required property string infoId
+                    text: infoId
                     onTriggered: {
                         if (itemView_Menu.addOperationPaths() === false) {
-                            return messageDialog.open_YT("未选择文件")
+                            return messageDialog.open_YT("未选择文件");
                         }
-                        root.operationType = "MusicWidget"
-                        YT.musicListModel.addFileInfo(infoID, root.operationPaths)
+                        root.operationType = "MusicWidget";
+                        YT.musicListModel.addFileInfo(infoID, root.operationPaths);
                     }
                 }
             }
@@ -201,18 +222,19 @@ FileWidget {
         Action {
             text: "重命名"
             onTriggered: {
-                const index = itemView.selectionModel.currentIndex.row
-                if (index < 0) return console.log("itemView_Menu 重命名 index < 0")
+                const index = itemView.selectionModel.currentIndex.row;
+                if (index < 0)
+                    return console.log("itemView_Menu 重命名 index < 0");
 
-                const target = itemView.view.itemAtIndex(index)
-                root.operationPaths = [itemModel.data(index, FileItemModel.FileInfoRole_Path)]
-                root.operationType = text
+                const target = itemView.view.itemAtIndex(index);
+                root.operationPaths = [itemModel.data(index, FileItemModel.FileInfoRole_Path)];
+                root.operationType = text;
 
-                editDelegate.text = itemModel.data(index, FileItemModel.FileInfoRole_Name)
-                editDelegate.open_YT(target, acceptedFunction, null)
+                editDelegate.text = itemModel.data(index, FileItemModel.FileInfoRole_Name);
+                editDelegate.open_YT(target, acceptedFunction, null);
             }
             function acceptedFunction(data, user_data) {
-                root.rename(itemModel.currentDir + "/" + data)
+                root.rename(itemModel.currentDir + "/" + data);
             }
         }
 
@@ -221,11 +243,11 @@ FileWidget {
             enabled: root.operationType === "剪切" || root.operationType === "复制"
             onTriggered: {
                 if (root.operationType === "剪切") {
-                    root.move(itemModel.currentDir)
-                    root.operationPaths = null
-                    root.operationType = null
+                    root.move(itemModel.currentDir);
+                    root.operationPaths = null;
+                    root.operationType = null;
                 } else if (root.operationType === "复制") {
-                    root.copy(itemModel.currentDir)
+                    root.copy(itemModel.currentDir);
                 }
             }
         }
@@ -234,9 +256,9 @@ FileWidget {
             text: "剪切"
             onTriggered: {
                 if (itemView_Menu.addOperationPaths() === false) {
-                    return messageDialog.open_YT("未选择文件")
+                    return messageDialog.open_YT("未选择文件");
                 }
-                root.operationType = text
+                root.operationType = text;
             }
         }
 
@@ -244,9 +266,9 @@ FileWidget {
             text: "复制"
             onTriggered: {
                 if (itemView_Menu.addOperationPaths() === false) {
-                    return messageDialog.open_YT("未选择文件")
+                    return messageDialog.open_YT("未选择文件");
                 }
-                root.operationType = text
+                root.operationType = text;
             }
         }
 
@@ -254,10 +276,12 @@ FileWidget {
             text: "删除"
             onTriggered: {
                 if (itemView_Menu.addOperationPaths() === false) {
-                    return messageDialog.open_YT("未选择文件")
+                    return messageDialog.open_YT("未选择文件");
                 }
-                root.operationType = text
-                messageDialog.open_YT("确定删除", function () {root.remove()})
+                root.operationType = text;
+                messageDialog.open_YT("确定删除", function () {
+                    root.remove();
+                });
             }
         }
 
@@ -266,13 +290,13 @@ FileWidget {
             YT_Menu.YT_MenuItem {
                 text: "文件夹"
                 onClicked: {
-                    root.createFolder(itemModel.currentDir)
+                    root.createFolder(itemModel.currentDir);
                 }
             }
             YT_Menu.YT_MenuItem {
                 text: "文件"
                 onClicked: {
-                    root.create(itemModel.currentDir)
+                    root.create(itemModel.currentDir);
                 }
             }
         }
@@ -294,14 +318,15 @@ FileWidget {
             implicitWidth: parent.width
 
             onHoveredChanged: {
-                if (hovered) ListView.view.currentIndex = index
+                if (hovered)
+                    ListView.view.currentIndex = index;
             }
             onClicked: {
-                itemHeader_Menu.close()
+                itemHeader_Menu.close();
                 if (selected) {
-                    itemHeader_Model.removeHeaderIndex(index)
+                    itemHeader_Model.removeHeaderIndex(index);
                 } else {
-                    itemHeader_Model.appendHeaderIndex(index)
+                    itemHeader_Model.appendHeaderIndex(index);
                 }
             }
         }
@@ -323,18 +348,18 @@ FileWidget {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: function (mouse) {
-                listView.view.focus = true
+                listView.view.focus = true;
                 if (mouse.button === Qt.LeftButton) {
-                    itemModel.currentDir = listView_Delegate.filePath
-                } else if(mouse.button === Qt.RightButton) {
-                    listView.followBackground.followItem = listView_Delegate
-                    listView_Menu.popup()
+                    itemModel.currentDir = listView_Delegate.filePath;
+                } else if (mouse.button === Qt.RightButton) {
+                    listView.followBackground.followItem = listView_Delegate;
+                    listView_Menu.popup();
                 } else {
-                    return
+                    return;
                 }
             }
             onDoubleClicked: function (mouse) {
-                listView.view.toggleExpanded(index)
+                listView.view.toggleExpanded(index);
             }
         }
     }
@@ -344,7 +369,8 @@ FileWidget {
         info_YT: itemView.delegateInfo
 
         ItemDelegate {
-            implicitWidth: info_YT.view.contentItem.width; implicitHeight: 30 + bottomInset
+            implicitWidth: info_YT.view.contentItem.width
+            implicitHeight: 30 + bottomInset
             padding: 0
             bottomInset: 3
             bottomPadding: bottomInset
@@ -357,7 +383,10 @@ FileWidget {
                 color: YT_Info.ItemFocusColor
 
                 Behavior on opacity {
-                    NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+                    NumberAnimation {
+                        duration: 200
+                        easing.type: Easing.InOutQuad
+                    }
                 }
             }
             contentItem: Item {
@@ -384,22 +413,23 @@ FileWidget {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: function (mouse) {
-                    itemView.view.focus = true
-                    var selectionModel = itemView.selectionModel
+                    itemView.view.focus = true;
+                    var selectionModel = itemView.selectionModel;
                     if (mouse.button === Qt.LeftButton) {
-                        selectionModel.selectItem(index, mouse.modifiers)
+                        selectionModel.selectItem(index, mouse.modifiers);
                     } else if (mouse.button === Qt.RightButton) {
                         if (selectionModel.selectedIndexes.length <= +true)
-                            selectionModel.selectItem(index, mouse.modifiers)
-                        itemView_Menu.popup(itemView_Delegate)
+                            selectionModel.selectItem(index, mouse.modifiers);
+                        itemView_Menu.popup(itemView_Delegate);
                     } else {
-                        return
+                        return;
                     }
                 }
                 onDoubleClicked: function (mouse) {
-                    if (mouse.button !== Qt.LeftButton) return
+                    if (mouse.button !== Qt.LeftButton)
+                        return;
                     if (itemModel.data(index, FileItemModel.FileInfoRole_Type) === "Folder") {
-                        itemModel.currentDir = itemModel.data(index, FileItemModel.FileInfoRole_Path)
+                        itemModel.currentDir = itemModel.data(index, FileItemModel.FileInfoRole_Path);
                     }
                 }
             }
@@ -427,19 +457,20 @@ FileWidget {
                 DragHandler {
                     target: null
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
-                    onActiveChanged: if(active === true) parent.startDrag()
+                    onActiveChanged: if (active === true)
+                        parent.startDrag()
                 }
             }
             TapHandler {
                 acceptedButtons: Qt.LeftButton
                 onTapped: function (eventPoint, button) {
-                    console.log("LeftButton")
+                    console.log("LeftButton");
                 }
             }
             TapHandler {
                 acceptedButtons: Qt.RightButton
                 onTapped: function (eventPoint, button) {
-                    itemHeader_Menu.open_YT(itemHeader_Delegate)
+                    itemHeader_Menu.open_YT(itemHeader_Delegate);
                 }
             }
         }

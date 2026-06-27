@@ -18,7 +18,7 @@ void NE_MediaOutput_Model::start()
             continue;
         if (it->typeNE_ == NE_Json)
         {
-            YT_Func::MediaEncoder_Write_YT_Data(media_encoder, it->dataNE_.toString());
+            YT_Func::MediaEncoder_Write_YT_Data(media_encoder, it->dataNE_.toString().toUtf8());
         }
         else if (it->typeNE_ == NE_AudioStream)
         {

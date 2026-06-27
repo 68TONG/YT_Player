@@ -1,8 +1,12 @@
 #include <YT_GeneralH.h>
+#include <YT_Info.h>
 #include <MusicImageModel.h>
 
 #include <QQuickStyle>
 #include <QLoggingCategory>
+
+#include "VideoBuffer.h"
+#include "MediaDecoder.h"
 
 int main(int argc, char* argv[])
 {
@@ -17,6 +21,9 @@ int main(int argc, char* argv[])
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, []() {
         QCoreApplication::exit(-1);
         }, Qt::QueuedConnection);
+    QObject::connect(&app, &QGuiApplication::aboutToQuit, []() {
+        YT_Info::getObject().aboutToQuit = true;
+        });
     engine.loadFromModule("YT_Player", "Main");
 
     return app.exec();

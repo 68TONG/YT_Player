@@ -4,168 +4,342 @@
 #include <QRandomGenerator>
 
 MusicWidget::MusicWidget(QQuickItem* parent)
-    : QQuickItem{ parent }, itemModel(*this), listModel(*this)
+    : QQuickItem{ parent }, fileModel(*this), listModel(*this), pathModel(this, "MusicWidget"), searchModel(this)
 {
     this->setFlag(QQuickItem::ItemHasContents, true);
 
     // curListInfoID = Music_DataBase::getObject().getListInfo_NameALL().at(0);
     curListInfoID = listModel.infoIds.first();
-    itemModel.setInfoIds(curListInfoID);
-    curPath = { curListInfoID };
+    fileModel.setInfoIds(curListInfoID);
+    pathModel.initData(curListInfoID);
+    playModel = MusicDatabase::obj().getListInfo_FileIds(MusicDatabase::playListInfo_Name);
 
-    connect(&itemModel, &MusicItemModel::infoIdsChanged, this, [this]()
-        { setCurPlayIndex(YT_AudioOutput::getObject().source().toString()); });
-    connect(&YT_AudioOutput::getObject(), &YT_AudioOutput::sourceChanged, this, [this](const QUrl& media)
-        { setCurPlayIndex(media.toString()); });
-}
+    connect(&pathModel, &YT_PathWidgetModel::srcDataChanged, this, [this]() {
+        if (pathModel.isSetDataing) return;
+        if (pathModel.srcData.isEmpty()) return;
+        const auto info_id = pathModel.srcData[0];
+        if (MusicDatabase::obj().getListInfo(info_id).name.isEmpty())
+            return;
 
-void MusicWidget::playMusic(int ids_index)
-{
-    // auto& play_info = Music_DataBase::getObject().getPlayListInfo();
-    auto &play_ids = MusicDatabase::obj().playFileInfoIds;
-    const auto playModel = YT_AudioOutput::getObject().playModel;
-    if (curListInfoID == MusicDatabase::obj().playFileInfoIdsName)
-    {
-        YT_AudioOutput::getObject().playIndex = ids_index - 1;
-    }
-    else if (playModel == "qrc:/Resource_UI/shuffle.png")
-    {
-        const auto& infoIds = itemModel.infoIds;
+        pathModel.isSetDataing = true;
+        setCurListInfoID(info_id);
+        pathModel.isSetDataing = false;
 
-        play_ids.clear();
-        play_ids.append(infoIds[ids_index]);
-        for (int i = 0; i < infoIds.count(); ++i)
-        {
-            int index = QRandomGenerator::global()->bounded(infoIds.count());
-            play_ids.append(infoIds[index]);
+        for (int i = 1; i < pathModel.srcData.count(); i++) {
+            fileModel.searchInfoIds(pathModel.pathData[i], pathModel.typeData[i]);
         }
-        YT_AudioOutput::getObject().playIndex = 0 - 1;
-    }
-    else if (playModel == "qrc:/Resource_UI/single_loop.png")
-    {
-        play_ids = { itemModel.infoIds[ids_index] };
-        YT_AudioOutput::getObject().playIndex = 0 - 1;
-    }
-    else if (playModel == "qrc:/Resource_UI/list_loop.png")
-    {
-        play_ids = itemModel.infoIds;
-        YT_AudioOutput::getObject().playIndex = ids_index - 1;
-    }
-    YT_AudioOutput::getObject().playNextMusic();
+        });
+    connect(&YT_AudioOutput::getObject(), &YT_AudioOutput::mediaStatusChanged, this, [this](QMediaPlayer::MediaStatus status) {
+        if (status == YT_AudioOutput::EndOfMedia) {
+            int info_id = getPlayInfoId();
+            if (info_id >= 0) {
+                int data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_PlayCount).toInt();
+                MusicDatabase::obj().setFileInfo(info_id, MusicFileInfo::I_PlayCount, data + 1);
+                fileModel.updateInfo(info_id);
+            }
+            playNextMusic();
+        }
+        });
+    connect(qApp, &QGuiApplication::aboutToQuit, this, [this]() {
+        for (auto it : updateTagData) {
+            if (it) it->waitForFinished();
+        }
+        });
+    connect(this, &MusicWidget::playIndexChanged, this, [this]() {
+        emit playInfoIdChanged();
+        });
 }
 
-void MusicWidget::addPlayMusic(const QString& path)
+Q_INVOKABLE void MusicWidget::playMusic(int data)
 {
-    // int info_id = Music_DataBase::getObject().addItemInfo(path);
-    int info_id = MusicDatabase::obj().addFileInfo(path);
-    int insert_index = qMax(YT_AudioOutput::getObject().playIndex + 1, 0);
+    if (curListInfoID == MusicDatabase::playListInfo_Name) return playMusic_PlayIndex(data);
 
-    // auto &ID_List = Music_DataBase::getObject().getPlayListInfo().ID_List;
-    // ID_List.insert(insert_index, info_id);
-    auto& playFileIds = MusicDatabase::obj().playFileInfoIds;
-    playFileIds.insert(insert_index, info_id);
+    playModel.clear();
+    int index = -1;
+    const auto& fileModel_infoIds = fileModel.infoIds;
+    if (playMode == "qrc:/Ui_Image/shuffle.png")
+    {
+        playModel.append(fileModel_infoIds[data]);
+        for (int i = 0; i < fileModel_infoIds.count(); ++i)
+        {
+            int index = QRandomGenerator::global()->bounded(fileModel_infoIds.count());
+            playModel.append(fileModel_infoIds[index]);
+        }
+        index = 0;
+    }
+    else if (playMode == "qrc:/Ui_Image/single_loop.png")
+    {
+        playModel = { fileModel_infoIds[data] };
+        index = 0;
+    }
+    else if (playMode == "qrc:/Ui_Image/list_loop.png")
+    {
+        playModel = fileModel_infoIds;
+        index = data;
+    }
+    emit playModelChanged();
+
+    MusicDatabase::obj().setListInfo(MusicDatabase::playListInfo_Name, MusicListInfo::I_SelectTag, DB::listToJsonByte<QString>(fileModel.selectTag));
+    MusicDatabase::obj().setListInfo_FileIds(MusicDatabase::playListInfo_Name, playModel);
+    playMusic_PlayIndex(index);
 }
 
-void MusicWidget::addPlayMusic(const QList<QString>& path)
+Q_INVOKABLE void MusicWidget::playMusic_Path(QString data)
+{
+    YT_AudioOutput::getObject().setSource(data);
+    YT_AudioOutput::getObject().play();
+
+    const int infoId = MusicDatabase::obj().getFileInfo_ID(data);
+    playIndex = playModel.indexOf(infoId);
+    emit playIndexChanged();
+
+    updateMusicInfo(infoId);
+}
+
+Q_INVOKABLE void MusicWidget::playMusic_InfoId(int data)
+{
+    playMusic_Path(MusicDatabase::obj().getFileInfo(data, DB_FileInfo::I_FilePath).toString());
+}
+
+Q_INVOKABLE void MusicWidget::playMusic_PlayIndex(int data)
+{
+    playMusic_Path(MusicDatabase::obj().getFileInfo(playModel.value(data, -1), DB_FileInfo::I_FilePath).toString());
+}
+
+Q_INVOKABLE void MusicWidget::playNextMusic()
+{
+    int index = playIndex + 1;
+    if (index < 0 || index >= playModel.size()) {
+        index = 0;
+    }
+    playMusic_PlayIndex(index);
+}
+
+Q_INVOKABLE void MusicWidget::playPreviousMusic()
+{
+    int index = playIndex - 1;
+    if (index < 0 || index >= playModel.size()) {
+        index = 0;
+    }
+    playMusic_PlayIndex(index);
+}
+
+void MusicWidget::addPlayMusic(const QList<int>& info_ids)
+{
+    int insert_index = qMax(playIndex + 1, 0);
+
+    if (info_ids.isEmpty()) return;
+
+    playModel.insert(playModel.begin() + insert_index, info_ids.count(), 0);
+    std::copy(info_ids.begin(), info_ids.end(), playModel.begin() + insert_index);
+
+    for (const auto& info_id : info_ids) {
+        int data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_AddPlayCount).toInt();
+        MusicDatabase::obj().setFileInfo(info_id, MusicFileInfo::I_AddPlayCount, data + 1);
+        fileModel.updateInfo(info_id);
+    }
+    emit playModelChanged();
+
+    MusicDatabase::obj().setListInfo_FileIds(MusicDatabase::playListInfo_Name, playModel);
+    if (getCurListInfoID() == MusicDatabase::playListInfo_Name) {
+        fileModel.setInfoIds(playModel);
+    }
+}
+
+void MusicWidget::addPlayMusic_Path(const QList<QString>& path_list)
 {
     QList<int> info_ids;
-    int insert_index = qMax(YT_AudioOutput::getObject().playIndex + 1, 0);
+    for (auto it : path_list) {
+        int info_id = MusicDatabase::obj().addFileInfo(it);
+        if (info_id >= 0) info_ids += info_id;
+    }
+    addPlayMusic(info_ids);
+}
 
-    for (auto it : path)
-    {
-        // info_ids += Music_DataBase::getObject().addItemInfo(it);
-        info_ids += MusicDatabase::obj().addFileInfo(it);
+Q_INVOKABLE QString MusicWidget::getMusicInfo_CoverPath(int info_id)
+{
+    const auto data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_CoverHashValue).toString();
+    return "image://MusicImage/" + (data.isEmpty() ? QString::number(info_id) : data);
+}
+
+Q_INVOKABLE int MusicWidget::updateMusicInfo(int info_id)
+{
+    if (MusicDatabase::obj().getFileInfo(info_id, DB_FileInfo::I_IsValid).toBool() == false) {
+        qDebug() << "MusicWidget::updateMusicInfo info_id: " << info_id << " is not valid";
+        return -1;
+    }
+    if (updateTagData.find(info_id) != updateTagData.end()) {
+        qDebug() << "MusicWidget::updateMusicInfo info_id: " << info_id << " is updateing";
+        return -2;
     }
 
-    // auto& ID_List = Music_DataBase::getObject().getPlayListInfo().ID_List;
-    // ID_List.insert(ID_List.begin() + insert_index, info_ids.count(), 0); // 占位
-    // std::copy(info_ids.begin(), info_ids.end(), ID_List.begin() + insert_index);
-    auto& playFileIds = MusicDatabase::obj().playFileInfoIds;
-    playFileIds.insert(playFileIds.begin() + insert_index, info_ids.count(), 0); // 占位
-    std::copy(info_ids.begin(), info_ids.end(), playFileIds.begin() + insert_index);
+    auto info = MusicDatabase::obj().getFileInfo(info_id);
+    auto watcher = new QFutureWatcher<std::tuple<QString, QJsonObject>>(this);
+    connect(watcher, &QFutureWatcher<std::tuple<QString, QJsonObject>>::finished, this, [this, info_id, watcher]() {
+        const auto file_path = std::get<QString>(watcher->result());
+        if (file_path.isEmpty()) {
+            watcher->deleteLater();
+            updateTagData[info_id] = nullptr;
+            return;
+        }
+        updateTagModel.push_front(info_id);
+        emit updateTagModelChanged();
+        });
+
+    updateTagData[info_id] = watcher;
+    auto future = QtConcurrent::run([info]() -> std::tuple<QString, QJsonObject> {
+        QJsonObject info_tags = {};
+        const auto info_path = info.filePath;
+        MusicFileInfo::getMusicMetaData(info_path, info_tags);
+
+        auto json_list = YT_Func::getTH_Wiki("https://thwiki.cc/歌词:" + DB::jsTagFirst(info_tags, Media::MetaData_Title).toString());
+        if (json_list.isEmpty()) {
+            json_list = YT_Func::getTH_Wiki("https://thwiki.cc/" + DB::jsTagFirst(info_tags, Media::MetaData_Album).toString());
+        }
+        if (json_list.isEmpty()) {
+            const QString error = " MusicWidget::updateMusicInfo getTH_Wiki isEmpty";
+            qDebug() << info_path << error;
+            qDebug().noquote() << "=== info_tags ===" << '\n' << QJsonDocument(info_tags).toJson(QJsonDocument::Indented) << '\n';
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+
+        int index = YT_Func::getBestMusicTag(json_list, info_tags, QFileInfo(info_path).absoluteDir().dirName());
+        if (index == INT_MIN) {
+            const QString error = " MusicWidget::updateMusicInfo best_json duplicate";
+            qDebug() << info_path << error;
+            qDebug().noquote() << "=== info_tags ===" << '\n' << QJsonDocument(info_tags).toJson(QJsonDocument::Indented) << '\n';
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+        if (index < 0) {
+            const QString error = " MusicWidget::updateMusicInfo best_json nullptr";
+            qDebug() << info_path << error;
+            qDebug().noquote() << "=== info_tags ===" << '\n' << QJsonDocument(info_tags).toJson(QJsonDocument::Indented) << '\n';
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+        if (info_tags == json_list[index]) {
+            const QString error = " MusicWidget::updateMusicInfo best_json = info.Tags";
+            qDebug() << info_path << error;
+            // YT_Func::obj().sendMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+
+        MediaEncoder media_encoder;
+        QFileInfo file_info(info_path);
+        const QString output_path = "./YT_PlayerOutput/" + QString::number(info.Id) + '.' + file_info.suffix();
+
+        int sic = media_encoder.setMediaPath(output_path.toUtf8());
+        if (sic < 0) {
+            const QString error = " MusicWidget::updateMusicInfo media_encoder setMediaPath error";
+            qDebug() << info_path << error;
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+
+        AudioBuffer audio_buffer(info_path.toUtf8());
+        if (audio_buffer.isValid() == false) {
+            const QString error = " MusicWidget::updateMusicInfo audio_buffer setMediaPath error";
+            qDebug() << info_path << error;
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+
+        sic = media_encoder.addStream(&audio_buffer);
+        if (sic < 0) {
+            const QString error = " MusicWidget::updateMusicInfo media_encoder addStream error";
+            qDebug() << info_path << error;
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+
+        sic = YT_Func::MediaEncoder_Write_YT_Data(media_encoder, QJsonDocument(json_list[index]).toJson());
+        if (sic < 0) {
+            const QString error = " MusicWidget::updateMusicInfo MediaEncoder_Write_YT_Data error";
+            qDebug() << info_path << error;
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+
+        sic = media_encoder.encodeRun();
+        if (sic < 0) {
+            const QString error = " MusicWidget::updateMusicInfo media_encoder encodeRun error";
+            qDebug() << info_path << error;
+            // YT_Func::obj().sendErrorMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + error);
+            return { QString(), info_tags };
+        }
+
+        qDebug() << info_path << " MusicWidget::updateMusicInfo media_encoder encodeRun finished";
+        YT_Func::obj().sendMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + " MusicWidget::updateMusicInfo info.Tags update finished", 10000);
+        YT_Func::obj().sendMessage(DB::jsTagFirst(info_tags, Media::MetaData_Title).toString() + " output_path is " + output_path, 10000);
+        // qDebug().noquote() << "\n=== info_tags ===\n" << QJsonDocument(info_tags).toJson(QJsonDocument::Indented);
+        // qDebug().noquote() << "\n=== best_json ===\n" << QJsonDocument(*best_json).toJson(QJsonDocument::Indented);
+
+        return { output_path, json_list[index] };
+        });
+    watcher->setFuture(future);
+    return 0;
 }
 
-void MusicWidget::setCurPath(const QString& data)
+Q_INVOKABLE int MusicWidget::updateMusicInfo(const QString& path)
 {
-    static const QRegularExpression re(R"([/\\])");
-    auto curPath = data.split(re);
-    curPath.removeAll("");
-    setCurPath(curPath);
+    return updateMusicInfo(MusicDatabase::obj().getFileInfo_ID(path));
 }
 
-void MusicWidget::setCurPath(const QList<QString>& data)
+Q_INVOKABLE int MusicWidget::updateMusicInfo_Local()
 {
-    if (data.isEmpty())
-        return;
-
-    const auto info_id = data[0];
-    // if (Music_DataBase::getObject().isListInfo(info_id) == false)
-    //     return;
-    if (MusicDatabase::obj().getListInfo(info_id).Name.isEmpty())
-        return;
-
-    setCurListInfoID(info_id);
-    for (int i = 1; i < data.count(); i++)
+    int error_count = 0;
+    while (updateTagModel.isEmpty())
     {
-        addCurPath(data[i]);
+        error_count = error_count - (updateMusicInfo_Local(updateTagModel.front()) < 0);
     }
+    return error_count;
 }
 
-void MusicWidget::addCurPath(const QString& data)
+Q_INVOKABLE int MusicWidget::updateMusicInfo_Local(int info_id)
 {
-    curPath.append(data);
-    // const auto &&infoID_List = Music_DataBase::getObject().searchItemInfo(data, itemModel.infoID_List);
-    // itemModel.setInfoID_List(infoID_List);
-    itemModel.searchInfoIds(data);
-    emit curPathChanged();
+    const auto [file_path, target_tags] = updateTagData[info_id]->result();
+    const auto playInfoId = getPlayInfoId();
+    const auto target_path = MusicDatabase::obj().getFileInfo(info_id, DB_FileInfo::I_FilePath).toString();
+
+    updateTagData[info_id]->deleteLater();
+    updateTagData[info_id] = nullptr;
+    updateTagModel.removeIf([info_id](int data) {
+        return data == info_id;
+        });
+    emit updateTagModelChanged();
+
+    if (info_id == playInfoId) playMusic_PlayIndex(-1);
+    int sic = moveFile(file_path, target_path, true).isEmpty();
+    if (info_id == playInfoId) playMusic_PlayIndex(playInfoId);
+
+    if (sic == false) {
+        qDebug() << "MusicWidget::updateMusicInfo_Local moveFile failed!\n file_path: " + file_path + " target_path: " + target_path;
+        return -1;
+    }
+    MusicDatabase::obj().setFileInfo(info_id, DB_FileInfo::I_FileTag, QJsonDocument(target_tags).toJson());
+    fileModel.updateInfo(info_id);
+    return 0;
 }
 
-QList<QString> MusicWidget::getSubPath(const QList<QString>& data) const
+Q_INVOKABLE void MusicWidget::updateMusicInfo_StarLevel(const int data, const QList<int>& info_ids)
 {
-    return {};
-}
-
-QString MusicWidget::getCurListInfoID() const
-{
-    return curListInfoID;
+    for (const auto it : info_ids)
+    {
+        MusicDatabase::obj().setFileInfo(it, MusicFileInfo::I_StarLevel, data);
+        fileModel.updateInfo(it);
+    }
 }
 
 void MusicWidget::setCurListInfoID(const QString& data)
 {
     curListInfoID = data;
     emit curListInfoIDChanged();
+    fileModel.setInfoIds(curListInfoID);
 
-    itemModel.setInfoIds(curListInfoID);
-
-    setCurPlayIndex(YT_AudioOutput::getObject().source().toString());
-
-    curPath = { curListInfoID };
-    emit curPathChanged();
-}
-
-int MusicWidget::getCurPlayIndex() const
-{
-    return curPlayIndex;
-}
-
-void MusicWidget::setCurPlayIndex(const QString& data)
-{
-    // if (curListInfoID == Music_DataBase::getObject().playListInfoID)
-    // {
-    //     curPlayIndex = YT_AudioOutput::getObject().playIndex;
-    // }
-    // else
-    // {
-    //     int infoID = Music_DataBase::getObject().findItemInfo(data);
-    //     curPlayIndex = itemModel.infoIds.indexOf(infoID);
-    // }
-
-    if (curListInfoID == MusicDatabase::obj().playFileInfoIdsName) {
-        curPlayIndex = YT_AudioOutput::getObject().playIndex;
-    } else {
-        int info_id = MusicDatabase::obj().getFileInfo_ID(data);
-        curPlayIndex = itemModel.infoIds.indexOf(info_id);
-    }
-
-    emit curPlayIndexChanged();
+    if (pathModel.isSetDataing) return;
+    pathModel.isSetDataing = true;
+    pathModel.setSrcData({ data });
+    pathModel.isSetDataing = false;
 }

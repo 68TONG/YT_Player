@@ -137,8 +137,8 @@ int Music_DataBase::updateItemInfo(int info_id)
             qDebug() << info_path << "Music_DataBase::updateItemInfo media_encoder addStream error";
             return info_tags;
         }
-        
-        YT_Func::MediaEncoder_Write_YT_Data(media_encoder, QString(QJsonDocument(json_list[index]).toJson()));
+
+        YT_Func::MediaEncoder_Write_YT_Data(media_encoder, QJsonDocument(json_list[index]).toJson());
         sic = media_encoder.encodeRun();
         if (sic < 0) {
             qDebug() << info_path << "Music_DataBase::updateItemInfo media_encoder encodeRun error";

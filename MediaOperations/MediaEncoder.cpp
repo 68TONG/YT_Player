@@ -68,11 +68,6 @@ struct FLACStreamInfo
     }
 };
 
-static const std::set<std::string> cover_image_formats = { "mp3", "flac", "mp4", "mkv" };
-static const std::set<int> image_stream_type_list = {
-    AVCodecID::AV_CODEC_ID_PNG,
-    AVCodecID::AV_CODEC_ID_MJPEG };
-
 MediaEncoder::MediaEncoder() {}
 
 MediaEncoder::~MediaEncoder()
@@ -120,18 +115,13 @@ int MediaEncoder::addStream(int stream_index, MediaDecoder* decoder)
     {
         return addCoverStream(stream_index, decoder);
     }
-    else if (cover_image_formats.count(format_ctx->oformat->name) &&
-        image_stream_type_list.count(source_stream->codecpar->codec_id))
-    {
+    else if (Media::checkImageStream(source_stream)) {
         return addCoverStream(stream_index, decoder);
     }
-
-    // int sic = avcodec_parameters_copy(stream->codecpar, source_stream->codecpar);
-    // if (sic < 0)
+    // else if (cover_image_formats.count(format_ctx->oformat->name) &&
+    //     image_stream_type_list.count(source_stream->codecpar->codec_id))
     // {
-    //     av_strerror(sic, error, sizeof(error));
-    //     std::cout << format_ctx->url << " MediaEncoder addStream avcodec_parameters_copy " << error << std::endl;
-    //     return sic;
+    //     return addCoverStream(stream_index, decoder);
     // }
 
     auto stream = addStream(source_stream);
@@ -239,28 +229,21 @@ int MediaEncoder::addCoverStream(const char* image_path)
         return sic;
     }
 
-    // auto de_format_ctx = decoder->getFormat_ctx();
-    // int index = av_find_best_stream(de_format_ctx, AVMediaType::AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
-    // if (index < 0)
-    // {
-    //     av_strerror(index, error, sizeof(error));
-    //     std::cout << format_ctx->url << " MediaEncoder addCoverStream av_find_best_stream " << error << std::endl;
-    // }
-
     return addCoverStream(0, decoder);
 }
 
 int MediaEncoder::addCoverStream(int stream_index, MediaDecoder* decoder)
 {
-    auto de_format_ctx = decoder->getFormat_ctx();
-    auto source_stream = de_format_ctx->streams[stream_index];
-
+    auto source_stream = decoder->getFormat_ctx()->streams[stream_index];
     auto stream = addStream(source_stream);
     if (stream == nullptr)
         return Media::UnknownError;
 
     stream->index = format_ctx->nb_streams - 1;
-    stream->disposition = (stream->disposition | AV_DISPOSITION_ATTACHED_PIC);
+    // if ((source_stream->disposition & AV_DISPOSITION_ATTACHED_PIC))
+    //     stream->disposition = (stream->disposition | AV_DISPOSITION_ATTACHED_PIC);
+    if (Media::checkAttachedPicSupport(format_ctx->oformat->name, source_stream->codecpar->codec_id) == 1)
+        stream->disposition = (stream->disposition | AV_DISPOSITION_ATTACHED_PIC);
 
     auto info = new EncodeInfo(stream->index, source_stream->index, decoder);
     info->type = MediaType::Image;
@@ -360,35 +343,38 @@ int MediaEncoder::encodeRun()
         }
     }
 
+    std::set<MediaDecoder*> media_decoder_list;
+    for (auto it : encode_infos)
     {
-        std::set<MediaDecoder*> media_decoder_list;
-        for (auto it : encode_infos)
-        {
-            auto info = it.second;
-            info->record_pts = 0;
+        auto info = it.second;
+        info->record_pts = 0;
 
-            auto media_decoder = info->media_decoder;
-            media_decoder->addStreams_ID({ info->de_stream_index });
-            if (info->is_encode)
-            {
-                media_decoder->initDecoders({ info->de_stream_index });
-            }
-            media_decoder_list.insert(media_decoder);
-        }
-
-        int task_id = ThreadPool::getObject().getTaskID(media_decoder_list.size());
-        for (auto it : media_decoder_list)
+        auto media_decoder = info->media_decoder;
+        media_decoder->addStreams_ID({ info->de_stream_index });
+        if (info->is_encode)
         {
-            ThreadPool::getObject().addTask(task_id, [](MediaDecoder* media_decoder) {
-                media_decoder->decodeRun_CountWait();
-                }, it);
+            media_decoder->initDecoders({ info->de_stream_index });
         }
+        media_decoder_list.insert(media_decoder);
     }
+
+    int task_id = ThreadPool::getObject().getTaskID(media_decoder_list.size());
+    for (auto it : media_decoder_list)
+    {
+        ThreadPool::getObject().addTask(task_id, [](MediaDecoder* media_decoder) {
+            media_decoder->decodeRun_CountWait();
+            }, it);
+    }
+
+    const auto retFunc = [this, task_id](int ret_data)->int {
+        ThreadPool::getObject().waitTask(task_id);
+        stop();
+        return ret_data;
+        };
 
     if (setMediaHeader() < 0)
     {
-        stop();
-        return Media::UnknownError;
+        return retFunc(Media::UnknownError);
     }
 
     for (auto index : codec_ids)
@@ -430,27 +416,22 @@ int MediaEncoder::encodeRun()
             }
             else if (sic < 0)
             {
-                stop();
-                return Media::UnknownError;
+                return retFunc(Media::UnknownError);
             }
         }
     }
 
     if (setMediaTrailer() < 0)
     {
-        stop();
-        return Media::UnknownError;
+        return retFunc(Media::UnknownError);
     }
 
     if (duration > max_pts) {
-        stop();
-        return Media::UnknownError;
+        return retFunc(Media::UnknownError);
     }
 
     std::cout << format_ctx->url << " MediaEncoder encodeRun End" << std::endl;
-    stop();
-    return Media::NoneError;
-
+    return retFunc(Media::NoneError);
 }
 
 int MediaEncoder::setMediaHeader()
@@ -494,14 +475,6 @@ int MediaEncoder::setMediaTrailer()
 
 AVStream* MediaEncoder::addStream(AVStream* source_stream)
 {
-    // auto stream = avformat_new_stream(format_ctx, avcodec_find_encoder(source_stream->codecpar->codec_id));
-    // if (stream == nullptr)
-    // {
-    //     std::cout << format_ctx->url << " MediaEncoder addStream avformat_new_stream return nullptr" << std::endl;
-    //     return nullptr;
-    // }
-    // return stream;
-
     auto stream = avformat_new_stream(format_ctx, nullptr);
     if (stream == nullptr)
     {

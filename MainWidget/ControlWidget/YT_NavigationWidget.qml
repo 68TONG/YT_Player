@@ -4,48 +4,100 @@ import YT_Player
 
 Control {
     id: root
-    property int imageSize: 30
-    property int delegateSize: 100
+    readonly property bool expanded: hovered || setExpanded
+    property bool setExpanded: false
+
+    property int expandSize: 0
+    property int collapseSize: 30
     readonly property ObjectModel model: ObjectModel {}
-    Component.onCompleted: {
-        model.append(mainView);
-        YT.navigationWidget = this;
+    function updateModel() {
+        const widget = YT.widgetInfos.get(YT.widgetIndex).widget;
+        const items = widget && widget.navigationWidget_Items ? widget.navigationWidget_Items : [];
+
+        // model.clear();
+        for (let i = 1; i < model.count; i++) {
+            const it = model.get(i);
+            it.implicitWidthChanged.disconnect(updateExpandSize);
+        }
+        if (model.count > 1) {
+            model.remove(1, model.count - 1);
+        }
+
+        for (let it of items) {
+            model.append(it);
+            it.implicitWidthChanged.connect(updateExpandSize);
+        }
+        updateExpandSize();
     }
-    
-    padding: YT_Info.Margin
-    hoverEnabled: true
-    implicitWidth: (expanded ? delegateSize : imageSize) + padding * 2
-    Behavior on implicitWidth {
-        NumberAnimation {
-            duration: 180
-            easing.type: Easing.OutQuad
+    function updateExpandSize() {
+        expandSize = 0;
+        for (let i = 0; i < model.count; i++) {
+            const it = model.get(i);
+            expandSize = Math.max(expandSize, it.implicitWidth);
         }
     }
 
-    readonly property bool expanded: hovered || setExpanded
-    property bool setExpanded: false
+    Connections {
+        target: YT
+        function onWidgetIndexChanged() {
+            updateModel();
+        }
+    }
+    Component.onCompleted: {
+        YT.navigationWidget = this;
+        model.append(mainView);
+        updateModel();
+    }
+
+    clip: true
+    padding: YT_Info.Margin
+    hoverEnabled: true
+    // Math.floor(Window.width / 6 / 60) * 60
+    implicitWidth: (expanded ? expandSize : collapseSize) + padding * 2
 
     background: Rectangle {
         color: YT_Info.ItemColor
         radius: YT_Info.Radius
     }
     contentItem: ListView {
+        id: rootView
         model: root.model
         spacing: YT_Info.Spacing
         interactive: false
+
+        remove: Transition {
+            NumberAnimation {
+                properties: "opacity"
+                duration: 300
+                from: 1.0
+                to: 0.0
+                easing.type: Easing.InOutQuad
+            }
+        }
+        add: Transition {
+            NumberAnimation {
+                properties: "opacity"
+                duration: 300
+                from: 0.0
+                to: 1.0
+                easing.type: Easing.InOutQuad
+            }
+        }
     }
 
     Instantiator {
         model: root.model.count > 1 ? root.model.count - 1 : null
         delegate: Rectangle {
             readonly property Item target: root.model.get(index + 1)
-            parent: target.parent
-            height: +true
-            anchors.left: target.left
-            anchors.right: target.right
-            anchors.bottom: target.top
+            parent: target && target.parent ? target.parent : null
+            anchors.left: parent ? target.left : undefined
+            anchors.right: parent ? target.right : undefined
+            anchors.bottom: parent ? target.top : undefined
             anchors.margins: YT_Info.Margin
             anchors.bottomMargin: YT_Info.MarginSmall
+            visible: target.visible
+            // opacity: target.opacity
+            height: +true
             color: YT_Info.ItemFocusColor
         }
     }
@@ -55,14 +107,11 @@ Control {
         currentIndex: YT.widgetIndex
         onCurrentIndexChanged: YT.widgetIndex = currentIndex
 
-        closeVertical: false
-        closeHorizontal: root.expanded == false
-
-        model: YT.widgetModel.count
+        model: YT.widgetInfos.count
         delegate: YT_DelegateItem {
-            readonly property QtObject model: YT.widgetModel.get(index)
+            readonly property QtObject model: YT.widgetInfos.get(index)
             textData: model.title
-            imageData: model.logo_path
+            imageData: model.logoPath
 
             onClicked: {
                 if (ListView.view.currentIndex == index) {
@@ -78,14 +127,12 @@ Control {
         id: root_YT_Delegate
         width: parent ? parent.width : 0
         height: implicitHeight
-        implicitWidth: contentItem.width
-        implicitHeight: contentItem.height
-
-        clip: true
+        implicitWidth: contentWidth
+        implicitHeight: contentHeight
         spacing: YT_Info.SpacingSmall
         interactive: false
 
-        property YT_FollowBackground followBackground: YT_FollowBackground {
+        readonly property YT_FollowBackground followBackground: YT_FollowBackground {
             parent: root_YT_Delegate.contentItem
             opacity: root_YT_Delegate.closeVertical == false && followItem !== null
             followItem: root_YT_Delegate.hoverItem ? root_YT_Delegate.hoverItem : root_YT_Delegate.currentItem
@@ -101,16 +148,6 @@ Control {
                 if (hovered == false)
                     root_YT_Delegate.hoverItem = null;
             }
-        }
-
-        property bool closeVertical: false
-        property bool closeHorizontal: false
-        readonly property int closeSize: 30
-        onCloseVerticalChanged: {
-            scrollSizeAni.to = closeVertical ? closeSize : implicitHeight;
-            scrollSizeAni.start();
-            if (closeVertical && currentIndex != 0)
-                scrollOpacityAni.start();
         }
 
         displaced: Transition {
@@ -130,6 +167,15 @@ Control {
             }
         }
 
+        property int closeSize: 30
+        property bool closeVertical: false
+        property bool closeHorizontal: YT.navigationWidget.expanded == false
+        onCloseVerticalChanged: {
+            scrollSizeAni.to = closeVertical ? closeSize : implicitHeight;
+            scrollSizeAni.start();
+            if (closeVertical && currentIndex != 0)
+                scrollOpacityAni.start();
+        }
         NumberAnimation {
             id: scrollSizeAni
             target: root_YT_Delegate
@@ -138,7 +184,6 @@ Control {
             duration: 180
             easing.type: Easing.OutQuad
         }
-
         SequentialAnimation {
             id: scrollOpacityAni
             NumberAnimation {
@@ -163,48 +208,47 @@ Control {
         }
     }
     component YT_DelegateItem: AbstractButton {
+        id: root_YT_DelegateItem
+        required property int index
         property string textData
         property string imageData
-        required property int index
-        readonly property int closeSize: ListView.view.closeSize
+        property Component imageDisplay: Image {
+            source: root_YT_DelegateItem.imageData
+            asynchronous: true
+            fillMode: Image.PreserveAspectFit
+        }
+        property Component textDisplay: YT_Text {
+            text: root_YT_DelegateItem.textData.charAt(0)
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
 
-        width: parent.width
+        width: ListView.view.width
         height: implicitHeight
-        implicitWidth: implicitContentWidth + closeSize + spacing
-        implicitHeight: closeSize
+        implicitWidth: implicitContentWidth + indicator.width + spacing + padding * 2
+        implicitHeight: ListView.view.closeSize
+        onImplicitWidthChanged: {
+            const view = ListView.view;
+            view.contentWidth = Math.max(view.contentWidth, implicitWidth);
+        }
 
+        spacing: 0
         padding: YT_Info.Margin
-        spacing: YT_Info.SpacingSmall
+        leftPadding: indicator.width + spacing
 
         background: null
         contentItem: YT_Text {
-            text: parent.textData
-            visible: parent.ListView.view.closeHorizontal == false
-            anchors.top: parent.top
-            anchors.left: indicator.right
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: parent.padding
-            anchors.leftMargin: parent.spacing
+            text: root_YT_DelegateItem.textData
+            visible: root_YT_DelegateItem.ListView.view.closeHorizontal == false
         }
-        indicator: Item {
-            x: parent.padding
-            y: parent.padding
-            width: parent.closeSize - parent.padding * 2
-            height: parent.closeSize - parent.padding * 2
-            Image {
-                anchors.fill: parent
-                visible: imageData != ""
-                source: imageData
-                smooth: true
-                fillMode: Image.PreserveAspectFit
-            }
-            YT_Text {
-                anchors.fill: parent
-                visible: imageData == ""
-                text: textData.charAt(0)
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
+        indicator: YT_Indicator {
+            enabled: false
+            edgeType: Qt.LeftEdge
+
+            padding: root_YT_DelegateItem.padding
+            background: null
+            contentItem: Loader {
+                sourceComponent: root_YT_DelegateItem.imageData != "" ? root_YT_DelegateItem.imageDisplay : root_YT_DelegateItem.textDisplay
             }
         }
         onHoveredChanged: {

@@ -52,7 +52,7 @@ Popup {
             property: "height"
             duration: 300
             from: 0.0
-            to: root.height
+            to: height
             easing.type: Easing.OutQuad
         }
         NumberAnimation {

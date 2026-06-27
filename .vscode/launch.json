@@ -22,11 +22,6 @@
                     "description": "将反汇编风格设置为 Intel",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
-                },
-                {
-                    "description": "加载 Qt Creator 自带的 Qt pretty-printer",
-                    "text": "python sys.path.insert(0, r'C:/YI_TONG/Creation/Qt/Tools/QtCreator/share/qtcreator/debugger'); from qttypes import register_qt_printers; register_qt_printers(None)",
-                    "ignoreFailures": false
                 }
             ]
         }

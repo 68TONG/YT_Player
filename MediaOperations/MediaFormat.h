@@ -42,6 +42,56 @@ namespace Media
         ((oss << std::forward<Args>(args)), ...);   // C++17 折叠表达式
         std::cout << oss.str() << "  " << buf << std::endl;
     }
+
+    static const std::set<std::string> cover_image_formats = { "mp3", "flac", "mp4", "mkv" };
+    static const std::set<int> image_stream_type_list = {
+        AVCodecID::AV_CODEC_ID_PNG,
+        AVCodecID::AV_CODEC_ID_MJPEG };
+
+    inline bool checkImageStream(const AVStream* stream) {
+        const auto codec_par = stream->codecpar;
+        const AVCodecDescriptor* codec_desc = avcodec_descriptor_get(codec_par->codec_id);
+        if (codec_desc == nullptr) return false;
+
+        if (codec_desc->type == AVMEDIA_TYPE_VIDEO) {
+            // 图片流通常没有有效的帧率
+            AVRational frame_rate = stream->avg_frame_rate;
+            if (frame_rate.num == 0 || (frame_rate.num == 1 && frame_rate.den == 1)) {
+                return true;
+            }
+            // 进一步检查：图片流通常只有1帧
+            if (stream->nb_frames == 1 || stream->nb_frames == 0) {
+                return true;
+            }
+        }
+
+        // 方法2：检查编解码器属性
+        if (codec_desc->props & AV_CODEC_PROP_BITMAP_SUB) {
+            return true;  // 位图字幕也算图片
+        }
+        return false;
+    }
+    inline int checkAttachedPicSupport(const char* format_name, enum AVCodecID codec_id) {
+        auto fmt = av_guess_format(format_name, nullptr, nullptr);
+        if (fmt == nullptr) {
+            return -1;
+        }
+
+        int ret = avformat_query_codec(fmt, codec_id, FF_COMPLIANCE_NORMAL);
+        if (ret == MKTAG('A', 'P', 'I', 'C')) {
+            return 1;  // 支持 attached_pic
+        }
+        else if (ret == 1) {
+            return 0;  // 支持普通流，但不一定是 attached_pic
+        }
+        else if (ret == 0) {
+            return -1;
+        }
+        else {
+            return -1;
+        }
+        return -1;
+    }
 }
 
 enum class MediaType

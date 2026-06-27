@@ -1,10 +1,18 @@
 import QtQuick
+import QtQuick.Effects
 import YT_Player
 
-Rectangle {
+Item {
+    id: root
     property Item followItem: null
     property int widthPadding: 0
     property int heightPadding: 0
+
+    property alias background: background
+    property alias radius: background.radius
+    property alias color: background.color
+    property alias enabledShadow: loadShadow.active
+    property color shadowColor
 
     z: -true
     x: followItem ? followItem.x + widthPadding : x
@@ -14,8 +22,24 @@ Rectangle {
     opacity: followItem !== null
     visible: opacity !== 0
 
-    radius: YT_Info.Radius
-    color: YT_Info.ItemFocusColor
+    Rectangle {
+        id: background
+        anchors.fill: parent
+        radius: YT_Info.Radius
+        color: YT_Info.ItemFocusColor
+    }
+    Loader {
+        id: loadShadow
+        active: false
+        z: -true
+        anchors.fill: background
+        sourceComponent: MultiEffect {
+            source: background
+            shadowEnabled: true
+            shadowColor: root.shadowColor
+            shadowBlur: 0.3
+        }
+    }
 
     Behavior on x {
         enabled: true

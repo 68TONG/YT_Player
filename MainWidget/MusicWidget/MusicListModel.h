@@ -1,5 +1,4 @@
-#ifndef MUSICLISTMODEL_H
-#define MUSICLISTMODEL_H
+#pragma once
 
 #include <YT_Info.h>
 #include <MusicDatabase.h>
@@ -25,8 +24,8 @@ public:
     QHash<int, QByteArray> roleNames() const override;
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
 
-    Q_INVOKABLE int index(const QString& infoID) const;
-    Q_INVOKABLE QString infoID(const int& index) const;
+    Q_INVOKABLE int index(const QString& info_id) const;
+    Q_INVOKABLE QString infoId(const int& index) const;
     Q_INVOKABLE bool move(int index, int at_index);
 
     Q_INVOKABLE void addInfo(const QString& info_id);
@@ -35,8 +34,7 @@ public:
     Q_INVOKABLE void addFileInfo(const QString& info_id, const QList<QString>& path_list);
 protected:
     QList<QString> infoIds;
+    Q_SIGNAL void infoIdsChanged();
 private:
     MusicWidget* const dataModel;
 };
-
-#endif // MUSICLISTMODEL_H

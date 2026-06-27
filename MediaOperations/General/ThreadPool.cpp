@@ -13,7 +13,7 @@ ThreadPool::~ThreadPool()
         run_condition.notify_all();
     }
 
-    for (auto &&it : threads)
+    for (auto&& it : threads)
     {
         if (it->joinable())
         {
@@ -24,7 +24,7 @@ ThreadPool::~ThreadPool()
     threads.clear();
 }
 
-ThreadPool &ThreadPool::getObject()
+ThreadPool& ThreadPool::getObject()
 {
     static ThreadPool obj;
     return obj;
@@ -44,7 +44,7 @@ void ThreadPool::updateTaskQueue()
 
     for (auto task_id = task_wait_list.begin(); task_id != task_wait_list.end();)
     {
-        TaskQueue &task_queue = taskqueue_list[*task_id];
+        TaskQueue& task_queue = task_queue_list[*task_id];
         if (task_queue.task_need_count > (threads.size() - alloc_task))
         {
             task_id++;
@@ -59,19 +59,24 @@ void ThreadPool::updateTaskQueue()
     // std::cout << "updateTaskQueue " << std::this_thread::get_id() << ' ' << abort << std::endl;
 }
 
-#pragma GCC push_options
-#pragma GCC optimize("00")
+// #pragma GCC push_options
+// #pragma GCC optimize("00")
 void ThreadPool::waitTask(int task_id)
 {
-    int sic = true;
-    while (sic)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        std::lock_guard<std::mutex> l(set_value_mutex);
-        sic = taskqueue_list.find(task_id) != taskqueue_list.end();
-    }
+    // int sic = true;
+    // while (sic)
+    // {
+    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    //     std::lock_guard<std::mutex> l(set_value_mutex);
+    //     sic = task_queue_list.find(task_id) != task_queue_list.end();
+    // }
+
+    std::unique_lock<std::mutex> l(set_value_mutex);
+    finish_condition.wait(l, [this, task_id] {
+        return task_queue_list.find(task_id) == task_queue_list.end();
+        });
 }
-#pragma GCC pop_options
+// #pragma GCC pop_options
 
 int ThreadPool::getTaskID(int task_need)
 {
@@ -84,12 +89,12 @@ int ThreadPool::getTaskID(int task_need)
     task_queue.task_need_count = task_need;
 
     task_wait_list.insert(task_id);
-    taskqueue_list.insert(std::pair<int, TaskQueue>(task_id, task_queue));
+    task_queue_list.insert(std::pair<int, TaskQueue>(task_id, task_queue));
 
     return task_id;
 }
 
-ThreadPool::ThreadWorker::ThreadWorker(ThreadPool *par, int id)
+ThreadPool::ThreadWorker::ThreadWorker(ThreadPool* par, int id)
 {
     parent = par;
     thread_id = id;
@@ -104,7 +109,7 @@ void ThreadPool::ThreadWorker::operator()()
         int task_queue_index = -1;
         for (auto task_id = parent->task_run_list.begin(); task_id != parent->task_run_list.end(); task_id++)
         {
-            TaskQueue &task_queue = parent->taskqueue_list[*task_id];
+            TaskQueue& task_queue = parent->task_queue_list[*task_id];
             if (task_queue.task_que.empty())
                 continue;
 
@@ -119,7 +124,7 @@ void ThreadPool::ThreadWorker::operator()()
             continue;
         }
 
-        TaskQueue &task_queue = parent->taskqueue_list[task_queue_index];
+        TaskQueue& task_queue = parent->task_queue_list[task_queue_index];
         func = task_queue.task_que.front();
         task_queue.task_que.pop();
         l.unlock();
@@ -131,10 +136,11 @@ void ThreadPool::ThreadWorker::operator()()
         task_queue.task_finish_count++;
         if (task_queue.task_que.empty() && task_queue.task_need_count == task_queue.task_finish_count)
         {
-            if (task_queue.task_release != NULL)
-                task_queue.task_release();
+            if (task_queue.task_release_func != nullptr)
+                task_queue.task_release_func();
             parent->task_run_list.erase(task_queue.task_id);
-            parent->taskqueue_list.erase(task_queue.task_id);
+            parent->task_queue_list.erase(task_queue.task_id);
+            parent->finish_condition.notify_all();
         }
 
         l.unlock();

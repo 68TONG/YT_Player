@@ -13,6 +13,7 @@ protected:
 public:
     virtual ~VoidBuffer();
     bool isValid() const;
+    AVStream* mediaStream() const;
     MediaDecoder* mediaDecoder() const;
     void setDuration(int64_t begin, int64_t end);
 

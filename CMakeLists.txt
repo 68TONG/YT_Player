@@ -6,18 +6,21 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
 set(QT_QML_GENERATE_QMLLS_INI ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(QML_IMPORT_PATH ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/ CACHE STRING "" FORCE)
+set(YT_Library "C:/TONG/IT")
+set(QML_IMPORT_PATH "${YT_Library}/HuskarUI/qml" CACHE STRING "" FORCE)
+set(QT_QML_IMPORT_PATH "${YT_Library}/HuskarUI/qml" CACHE STRING "" FORCE)
+message(STATUS "QML_IMPORT_PATH: ${QML_IMPORT_PATH}")
+message(STATUS "QT_QML_IMPORT_PATH: ${QT_QML_IMPORT_PATH}")
 
 find_package(Qt6 REQUIRED COMPONENTS Sql)
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 find_package(Qt6 REQUIRED COMPONENTS Multimedia)
 find_package(Qt6 REQUIRED COMPONENTS Concurrent)
+find_package(Qt6 REQUIRED COMPONENTS ShaderTools)
 find_package(Qt6 REQUIRED COMPONENTS QuickControls2)
 qt_standard_project_setup(REQUIRES 6.8)
 
-set(YT_Library "C:/TONG/IT")
 add_subdirectory("MediaOperations" "MediaOperations")
-
 include_directories(
     "YT_CXX"
     "YT_Quick"
@@ -28,8 +31,8 @@ include_directories(
     "MainWidget/FileWidget"
     "MainWidget/MusicWidget"
     "MainWidget/ControlWidget"
+    "MainWidget/PictureWidget"
 )
-
 file(GLOB_RECURSE PROJECT_FILE 
     "YT_CXX/*" 
     "YT_Quick/*" 
@@ -49,8 +52,6 @@ endforeach(filePath)
 ##CXX_FILE
 set(PROJECT_SOURCE_FILE ${PROJECT_FILE})
 list(FILTER PROJECT_SOURCE_FILE INCLUDE REGEX "\\.h$|\\.cpp$")
-##RESOURCE_FILE
-file(GLOB_RECURSE PROJECT_RESOURCE_FILE "")
 
 set_source_files_properties("MainWidget/ControlWidget/YT.qml" PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_executable(${PROJECT_NAME})
@@ -61,14 +62,29 @@ qt_add_qml_module(
     QML_FILES 
         "Main.qml" 
         ${PROJECT_QML_FILE}
-    RESOURCES 
-        "Resource/Resource_UI.qrc"
     SOURCES 
         "main.cpp" 
         ${PROJECT_SOURCE_FILE} 
-        ${PROJECT_RESOURCE_FILE}
     DEPENDENCIES 
         QtQuick
+)
+
+file(GLOB_RECURSE PROJECT_UI_IMAGE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "YT_Resource/Ui_Image/*")
+qt6_add_resources(
+    ${PROJECT_NAME} "Ui_Image"
+    BASE 
+        "YT_Resource"
+    FILES
+        ${PROJECT_UI_IMAGE} 
+)
+
+file(GLOB_RECURSE PROJECT_SHADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "YT_Resource/Shaders/*")
+qt6_add_shaders(
+    ${PROJECT_NAME} "Shaders"
+    BASE 
+        "YT_Resource"
+    FILES
+        ${PROJECT_SHADERS} 
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -91,8 +107,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE MediaOperations)
 target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/chinese-util-cpp/lib/libchinese_util.a")
 target_include_directories(${PROJECT_NAME} PRIVATE "${YT_Library}/chinese-util-cpp/include")
 
-target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/SQLite/sqlite3.dll")
-target_include_directories(${PROJECT_NAME} PRIVATE "${YT_Library}/SQLite")
+# target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/SQLite/sqlite3.dll")
+# target_include_directories(${PROJECT_NAME} PRIVATE "${YT_Library}/SQLite")
+
+set_target_properties(${PROJECT_NAME} PROPERTIES QT_QML_IMPORT_PATH "${YT_Library}/HuskarUI/qml")
+target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/HuskarUI/bin/HuskarUIBasic.dll")
+target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/HuskarUI/bin/HuskarUIImpl.dll")
+target_include_directories(${PROJECT_NAME} PRIVATE "${YT_Library}/HuskarUI/include")
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -106,19 +127,19 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMENT "Copying Chinese utility data files to build directory"
 )
 
-# If MediaOperations exported a list of FFmpeg DLLs (Windows), copy them to the exe output after build
-if(WIN32 AND DEFINED MediaOperationsLibrary)
-    foreach(_ff ${MediaOperationsLibrary})
-        if(EXISTS ${_ff})
-            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${_ff}"
-                    $<TARGET_FILE_DIR:${PROJECT_NAME}>
-                COMMENT "Copying FFmpeg DLL ${_ff} to output directory"
-            )
-        endif()
-    endforeach()
-endif()
+# # If MediaOperations exported a list of FFmpeg DLLs (Windows), copy them to the exe output after build
+# if(WIN32 AND DEFINED MediaOperationsLibrary)
+#     foreach(_ff ${MediaOperationsLibrary})
+#         if(EXISTS ${_ff})
+#             add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+#                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#                     "${_ff}"
+#                     $<TARGET_FILE_DIR:${PROJECT_NAME}>
+#                 COMMENT "Copying FFmpeg DLL ${_ff} to output directory"
+#             )
+#         endif()
+#     endforeach()
+# endif()
 
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME}

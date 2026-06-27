@@ -13,7 +13,7 @@ RowLayout {
             anchors.fill: parent
             anchors.margins: YT_Info.Margin
 
-            source: "qrc:/Resource_UI/music_logo.png"
+            source: "qrc:/Ui_Image/music_logo.png"
             fillMode: Image.PreserveAspectFit  // 按比例缩放图片
         }
     }
@@ -39,7 +39,7 @@ RowLayout {
             }
 
             Repeater {
-                model: [YT.musicItemModel.titleTag].concat(YT.musicItemModel.selectTag)
+                model: [YT.musicFileModel.titleTag].concat(YT.musicFileModel.selectTag)
                 delegate: YT_TextList {
                     required property string modelData
                     width: contentItem.implicitWidth
@@ -47,16 +47,7 @@ RowLayout {
 
                     currentIndex: 0
                     isPlayTextList: true
-                    textList: [""]
-                    function updateTextList() {
-                        textList = YT_AudioOutput.getCurMusicInfo(modelData);
-                    }
-                    Component.onCompleted: {
-                        YT_AudioOutput.onCurMusicInfoChanged.connect(updateTextList);
-                    }
-                    Component.onDestruction: {
-                        YT_AudioOutput.onCurMusicInfoChanged.disconnect(updateTextList);
-                    }
+                    textList: YT_AudioOutput.playInfoID >= 0 ? YT_AudioOutput.getPlayInfoTags(modelData) : [""]
                 }
             }
         }
@@ -126,21 +117,14 @@ RowLayout {
                 Layout.fillHeight: true
 
                 padding: 0
-                modelData: modelDataList[modelDataIndex]
+                modelData: YT_AudioOutput.playMode
                 contentItem: YT_Button.LoadImage {}
 
-                property int modelDataIndex: 0
-                readonly property list<string> modelDataList: ["qrc:/Resource_UI/shuffle.png", "qrc:/Resource_UI/list_loop.png", "qrc:/Resource_UI/single_loop.png"]
+                readonly property list<string> modelDataList: ["qrc:/Ui_Image/shuffle.png", "qrc:/Ui_Image/list_loop.png", "qrc:/Ui_Image/single_loop.png"]
                 onClicked: {
-                    var index = modelDataIndex + 1;
-                    if (index >= modelDataList.length)
-                        index = 0;
-                    modelDataIndex = index;
-                }
-                Component.onCompleted: {
-                    YT_AudioOutput.playModel = Qt.binding(function () {
-                        return modelData;
-                    });
+                    let index = modelDataList.indexOf(YT_AudioOutput.playMode);
+                    index = index < 0 || index + 1 >= modelDataList.length ? 0 : index + 1;
+                    YT_AudioOutput.playMode = modelDataList[index];
                 }
             }
             YT_Button {
@@ -148,7 +132,7 @@ RowLayout {
                 Layout.fillHeight: true
 
                 padding: 0
-                modelData: "qrc:/Resource_UI/volume.png"
+                modelData: "qrc:/Ui_Image/volume.png"
                 contentItem: YT_Button.LoadImage {}
             }
             YT_Button {
@@ -156,7 +140,7 @@ RowLayout {
                 Layout.fillHeight: true
 
                 padding: 0
-                modelData: "qrc:/Resource_UI/operate.png"
+                modelData: "qrc:/Ui_Image/operate.png"
                 contentItem: YT_Button.LoadImage {}
                 onClicked: {}
             }
@@ -172,7 +156,7 @@ RowLayout {
                 Layout.fillHeight: true
 
                 padding: 0
-                modelData: "qrc:/Resource_UI/previous.png"
+                modelData: "qrc:/Ui_Image/previous.png"
                 contentItem: YT_Button.LoadImage {}
                 onClicked: YT_AudioOutput.playPreviousMusic()
             }
@@ -181,7 +165,7 @@ RowLayout {
                 Layout.fillHeight: true
 
                 padding: 0
-                modelData: YT_AudioOutput.playing ? "qrc:/Resource_UI/playing.png" : "qrc:/Resource_UI/stoping.png"
+                modelData: YT_AudioOutput.playing ? "qrc:/Ui_Image/playing.png" : "qrc:/Ui_Image/stoping.png"
                 contentItem: YT_Button.LoadImage {}
                 onClicked: YT_AudioOutput.playing ? YT_AudioOutput.pauseMusic() : YT_AudioOutput.playMusic()
             }
@@ -190,7 +174,7 @@ RowLayout {
                 Layout.fillHeight: true
 
                 padding: 0
-                modelData: "qrc:/Resource_UI/next.png"
+                modelData: "qrc:/Ui_Image/next.png"
                 contentItem: YT_Button.LoadImage {}
                 onClicked: YT_AudioOutput.playNextMusic()
             }

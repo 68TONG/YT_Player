@@ -6,25 +6,24 @@ Slider {
     id: root
     value: 0
     padding: 0
+    handle: null
 
-    property int contentItem_Size: 4
+    property int backgroundSize: 4
+    property int backgroundRadius: background.height / 2
+    property color backgroundColor: YT_Info.ItemColor
+    property color backgroundThroughColor: YT_Info.ItemFocusColor
     background: Rectangle {
-        // y: parent.topPadding + parent.availableHeight - height
         width: parent.availableWidth
-        height: parent.contentItem_Size
-
-        radius: height / 2
-        color: YT_Info.ItemColor
-
+        height: parent.backgroundSize
+        color: root.backgroundColor
+        radius: root.backgroundRadius
         Rectangle {
             width: root.visualPosition * parent.width
             height: parent.height
-            color: YT_Info.ItemFocusColor
-            radius: parent.radius
+            color: root.backgroundThroughColor
+            radius: root.backgroundRadius
         }
     }
-    handle: null
-
     HoverHandler {
         cursorShape: Qt.PointingHandCursor // 设置鼠标悬停时的样式为手形
     }

@@ -2,43 +2,55 @@ pragma Singleton
 
 import QtQuick
 import YT_Player
+import HuskarUI.Basic
 
 QtObject {
-    property int widgetIndex: 0
+    objectName: "YT"
+    property HusMessage mainMessage: null
     property YT_ScrollBarList mainScrollBar: null
     property YT_NavigationWidget navigationWidget: null
 
     property MusicWidget musicWidget: null
-    property MusicItemModel musicItemModel: null
+    property MusicFileModel musicFileModel: null
     property MusicListModel musicListModel: null
 
     property FileWidget fileWidget: null
 
-    readonly property ObjectModel widgetModel: ObjectModel {
-        QtObject {
-            property string title: "音乐"
-            property string logo_path: "qrc:/Resource_UI/music_logo.png"
-            property MusicWidget widget: YT.musicWidget
-            property list<string> widget_curPath: widget ? widget.curPath : []
+    property int widgetIndex: 0
+    readonly property ObjectModel widgetInfos: ObjectModel {
+        YT_WidgetInfo {
+            title: "音乐"
+            widget: YT.musicWidget
+            widgetName: "MusicWidget"
+            logoPath: "qrc:/Ui_Image/music_logo.png"
         }
-        QtObject {
-            property string title: "文件"
-            property string logo_path: "qrc:/Resource_UI/file_logo.png"
-            property FileWidget widget: YT.fileWidget
-            property list<string> widget_curPath: widget ? widget.curPath : []
+        YT_WidgetInfo {
+            title: "文件"
+            widget: YT.fileWidget
+            widgetName: "FileWidget"
+            logoPath: "qrc:/Ui_Image/file_logo.png"
         }
-        QtObject {
-            property string title: "壁纸"
-            property string logo_path: "qrc:/Resource_UI/picture_logo.png"
-            property Item widget: null
-            property list<string> widget_curPath: widget ? widget.curPath : []
+        YT_WidgetInfo {
+            title: "壁纸"
+            widget: null
+            widgetName: "WallpaperWidget"
+            logoPath: "qrc:/Ui_Image/picture_logo.png"
         }
-        QtObject {
-            property string title: "编辑"
-            property string logo_path: "qrc:/Resource_UI/edit_logo.png"
-            property Item widget: null
-            property list<string> widget_curPath: widget ? widget.curPath : []
+        YT_WidgetInfo {
+            title: "编辑"
+            widget: null
+            widgetName: "EditWidget"
+            logoPath: "qrc:/Ui_Image/edit_logo.png"
         }
+    }
+
+    component YT_WidgetInfo: QtObject {
+        property string title: ""
+        property Item widget: null
+        property string widgetName: ""
+        property string logoPath: ""
+        readonly property YT_PathWidgetModel pathModel: widget ? widget.pathModel : null
+        readonly property YT_SearchWidgetModel searchModel: widget ? widget.searchModel : null
     }
 
     function formatTime(ms) {
@@ -54,29 +66,31 @@ QtObject {
     }
 
     function mapFromGlobal(_this, data, pos) {
-        const global_pos = data.mapToGlobal(pos)
-        return _this.mapFromGlobal(global_pos)
+        const global_pos = data.mapToGlobal(pos);
+        return _this.mapFromGlobal(global_pos);
     }
 
     function findParent(data, type) {
-        if (data === null) return null
-        if (data instanceof type) return data
-        return findParent(data.parent, type)
+        if (data === null)
+            return null;
+        if (data instanceof type)
+            return data;
+        return findParent(data.parent, type);
     }
 
     component RectChangedSignal: Connections {
         property bool is
         function onXChanged() {
-            is = !is
+            is = !is;
         }
         function onYChanged() {
-            is = !is
+            is = !is;
         }
         function onWidthChanged() {
-            is = !is
+            is = !is;
         }
         function onHeightChanged() {
-            is = !is
+            is = !is;
         }
     }
 }

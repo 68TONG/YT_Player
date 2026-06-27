@@ -9,7 +9,7 @@ MediaDecoder::~MediaDecoder()
     release();
 }
 
-int MediaDecoder::initMediaPath(const char *url)
+int MediaDecoder::initMediaPath(const char* url)
 {
     release();
 
@@ -34,7 +34,7 @@ int MediaDecoder::initMediaPath(const char *url)
     return 0;
 }
 
-bool MediaDecoder::addStreams_ID(std::set<int> list_id, std::set<int> *list_is)
+bool MediaDecoder::addStreams_ID(std::set<int> list_id, std::set<int>* list_is)
 {
     if (cur_state != CodecState::Ready)
         return false;
@@ -54,7 +54,7 @@ bool MediaDecoder::addStreams_ID(std::set<int> list_id, std::set<int> *list_is)
     return ret;
 }
 
-bool MediaDecoder::setStreams_ID(std::set<int> list_id, std::set<int> *list_is)
+bool MediaDecoder::setStreams_ID(std::set<int> list_id, std::set<int>* list_is)
 {
     if (cur_state != CodecState::Ready)
         return false;
@@ -63,7 +63,7 @@ bool MediaDecoder::setStreams_ID(std::set<int> list_id, std::set<int> *list_is)
     return addStreams_ID(list_id, list_is);
 }
 
-bool MediaDecoder::setStreams_Type(std::set<AVMediaType> list_type, std::map<int, int> *list_is)
+bool MediaDecoder::setStreams_Type(std::set<AVMediaType> list_type, std::map<int, int>* list_is)
 {
     if (cur_state != CodecState::Ready)
         return false;
@@ -81,7 +81,7 @@ bool MediaDecoder::setStreams_Type(std::set<AVMediaType> list_type, std::map<int
             continue;
         }
         if (list_is)
-            list_is->insert({it, index});
+            list_is->insert({ it, index });
         codec_ids.insert(index);
     }
     return ret;
@@ -96,12 +96,12 @@ void MediaDecoder::clearDecoders()
     codec_ctxs.clear();
 }
 
-bool MediaDecoder::initDecoders(std::set<int> *list_is)
+bool MediaDecoder::initDecoders(std::set<int>* list_is)
 {
     return initDecoders(codec_ids, list_is);
 }
 
-bool MediaDecoder::initDecoders(std::set<int> list_id, std::set<int> *list_is)
+bool MediaDecoder::initDecoders(std::set<int> list_id, std::set<int>* list_is)
 {
     if (cur_state != CodecState::Ready)
         return false;
@@ -115,7 +115,7 @@ bool MediaDecoder::initDecoders(std::set<int> list_id, std::set<int> *list_is)
             codec_ctxs.erase(id);
         }
 
-        AVCodecContext *codec_ctx = openDecoder(id);
+        AVCodecContext* codec_ctx = openDecoder(id);
         if (codec_ctx == NULL)
         {
             ret = false;
@@ -129,19 +129,19 @@ bool MediaDecoder::initDecoders(std::set<int> list_id, std::set<int> *list_is)
     return ret;
 }
 
-AVStream *MediaDecoder::getStream(int index)
+AVStream* MediaDecoder::getStream(int index)
 {
     if (index < 0 || index >= format_ctx->nb_streams)
         return nullptr;
     return format_ctx->streams[index];
 }
 
-AVFormatContext *MediaDecoder::getFormat_ctx()
+AVFormatContext* MediaDecoder::getFormat_ctx()
 {
     return format_ctx;
 }
 
-MutexQueue<AVPacket *> *MediaDecoder::getPacket_que(int index)
+MutexQueue<AVPacket*>* MediaDecoder::getPacket_que(int index)
 {
     if (cur_state == CodecState::Invalid)
         return nullptr;
@@ -150,7 +150,7 @@ MutexQueue<AVPacket *> *MediaDecoder::getPacket_que(int index)
     return &packet_ques[index];
 }
 
-MutexQueue<AVFrame *> *MediaDecoder::getFrame_que(int index)
+MutexQueue<AVFrame*>* MediaDecoder::getFrame_que(int index)
 {
     if (cur_state == CodecState::Invalid)
         return nullptr;
@@ -159,7 +159,7 @@ MutexQueue<AVFrame *> *MediaDecoder::getFrame_que(int index)
     return &frame_ques[index];
 }
 
-VoidBuffer *MediaDecoder::getCreateBuffer(int index)
+VoidBuffer* MediaDecoder::getCreateBuffer(int index)
 {
     if (cur_state == CodecState::Invalid)
         return nullptr;
@@ -188,7 +188,7 @@ VoidBuffer *MediaDecoder::getCreateBuffer(int index)
     return create_buffers[index];
 }
 
-AVPacket *MediaDecoder::getPacket()
+AVPacket* MediaDecoder::getPacket()
 {
     auto packet = av_packet_alloc();
     while (true)
@@ -208,11 +208,12 @@ AVPacket *MediaDecoder::getPacket()
             av_packet_unref(packet);
             continue;
         }
+        return packet;
     }
-    return packet;
+    return nullptr;
 }
 
-AVFrame *MediaDecoder::getFrame()
+AVFrame* MediaDecoder::getFrame()
 {
     if (frame_que.empty() == false)
     {
@@ -367,7 +368,7 @@ void MediaDecoder::decodeRun()
         start();
     while (cur_state == CodecState::Running)
     {
-        AVPacket *packet = nullptr;
+        AVPacket* packet = nullptr;
         int sic = readPacket(&packet);
         if (sic < 0)
             return stop();
@@ -387,15 +388,15 @@ void MediaDecoder::decodeRun_TimeEnd(int64_t end_time)
         start();
     while (cur_state == CodecState::Running)
     {
-        AVPacket *packet = NULL;
+        AVPacket* packet = NULL;
         int sic = readPacket(&packet);
         if (sic < 0)
             return stop();
         if (packet == NULL)
             continue;
 
-        AVCodecContext *codec_ctx = codec_ctxs[packet->stream_index];
-        int64_t pts = av_rescale_q(packet->pts, codec_ctx->time_base, {1, 1000000});
+        AVCodecContext* codec_ctx = codec_ctxs[packet->stream_index];
+        int64_t pts = av_rescale_q(packet->pts, codec_ctx->time_base, { 1, 1000000 });
         if (pts >= end_time)
         {
             av_packet_free(&packet);
@@ -430,7 +431,7 @@ void MediaDecoder::decodeRun_CountWait(int wait_count, int wait_stream_index)
         if (wait_stream_index < 0)
             wait_stream_index = *codec_ids.begin();
     }
-    wait_stream_index = *codec_ids.begin();
+
     while (cur_state == CodecState::Running)
     {
         int cur_count = std::max(packet_ques[wait_stream_index].size(), frame_ques[wait_stream_index].size());
@@ -440,7 +441,7 @@ void MediaDecoder::decodeRun_CountWait(int wait_count, int wait_stream_index)
             continue;
         }
 
-        AVPacket *packet = nullptr;
+        AVPacket* packet = nullptr;
         int sic = readPacket(&packet);
         if (sic < 0)
             return stop();
@@ -469,7 +470,7 @@ void MediaDecoder::decodeRun_Play(int wait_count, int wait_stream_index)
             continue;
         }
 
-        AVPacket *packet = NULL;
+        AVPacket* packet = NULL;
         int sic = readPacket(&packet);
         if (sic == AVERROR_EOF)
         {
@@ -496,17 +497,17 @@ void MediaDecoder::decodeRun_Play(int wait_count, int wait_stream_index)
     return stop();
 }
 
-AVCodecContext *MediaDecoder::openDecoder(int id)
+AVCodecContext* MediaDecoder::openDecoder(int id)
 {
-    AVCodecParameters *codec_par = format_ctx->streams[id]->codecpar;
-    const AVCodec *codec = avcodec_find_decoder(codec_par->codec_id);
+    AVCodecParameters* codec_par = format_ctx->streams[id]->codecpar;
+    const AVCodec* codec = avcodec_find_decoder(codec_par->codec_id);
     if (codec == NULL)
     {
         std::cout << format_ctx->url << " openDecoder avcodec_find_decoder " << "codec = NULL" << std::endl;
         return NULL;
     }
 
-    AVCodecContext *codec_ctx = avcodec_alloc_context3(codec);
+    AVCodecContext* codec_ctx = avcodec_alloc_context3(codec);
     if (codec_ctx == NULL)
     {
         std::cout << format_ctx->url << " openDecoder avcodec_alloc_context3 " << "codec_ctx = NULL" << std::endl;
@@ -535,9 +536,9 @@ AVCodecContext *MediaDecoder::openDecoder(int id)
     return codec_ctx;
 }
 
-int MediaDecoder::readPacket(AVPacket **packet_ptr)
+int MediaDecoder::readPacket(AVPacket** packet_ptr)
 {
-    AVPacket *packet = av_packet_alloc();
+    AVPacket* packet = av_packet_alloc();
     int sic = av_read_frame(format_ctx, packet);
     if (sic < 0)
     {
@@ -564,13 +565,13 @@ int MediaDecoder::readPacket(AVPacket **packet_ptr)
     return +true;
 }
 
-int MediaDecoder::decodePacket(AVPacket **packet_ptr)
+int MediaDecoder::decodePacket(AVPacket** packet_ptr)
 {
     auto packet = *packet_ptr;
     *packet_ptr = nullptr;
 
     int index = packet->stream_index;
-    AVCodecContext *codec_ctx = codec_ctxs[index];
+    AVCodecContext* codec_ctx = codec_ctxs[index];
     int sic = avcodec_send_packet(codec_ctx, packet);
     if (sic < 0)
     {
@@ -583,7 +584,7 @@ int MediaDecoder::decodePacket(AVPacket **packet_ptr)
 
     while (true)
     {
-        AVFrame *frame = av_frame_alloc();
+        AVFrame* frame = av_frame_alloc();
         sic = avcodec_receive_frame(codec_ctx, frame);
         if (sic == 0)
         {
@@ -606,7 +607,7 @@ int MediaDecoder::decodePacket(AVPacket **packet_ptr)
 }
 
 template <typename T>
-void MediaDecoder::abortQues(std::map<int, MutexQueue<T>> &ques, bool is_abort)
+void MediaDecoder::abortQues(std::map<int, MutexQueue<T>>& ques, bool is_abort)
 {
     for (auto it = ques.begin(); it != ques.end(); it++)
     {
@@ -614,33 +615,33 @@ void MediaDecoder::abortQues(std::map<int, MutexQueue<T>> &ques, bool is_abort)
     }
 }
 
-void MediaDecoder::clearPacketQue(MutexQueue<AVPacket *> &que)
+void MediaDecoder::clearPacketQue(MutexQueue<AVPacket*>& que)
 {
-    std::queue<AVPacket *> read_que;
+    std::queue<AVPacket*> read_que;
     que.pop(read_que);
 
     for (; read_que.empty() == false; read_que.pop())
     {
-        AVPacket *val = read_que.front();
+        AVPacket* val = read_que.front();
         av_packet_free(&val);
     }
 }
 
-void MediaDecoder::clearFrameQue(MutexQueue<AVFrame *> &que)
+void MediaDecoder::clearFrameQue(MutexQueue<AVFrame*>& que)
 {
-    std::queue<AVFrame *> read_que;
+    std::queue<AVFrame*> read_que;
     que.pop(read_que);
 
     for (; read_que.empty() == false; read_que.pop())
     {
-        AVFrame *val = read_que.front();
+        AVFrame* val = read_que.front();
         av_frame_free(&val);
     }
 }
 
 void MediaDecoder::clearCreateBuffers()
 {
-    for (auto &&it : create_buffers)
+    for (auto&& it : create_buffers)
     {
         delete it.second;
     }
