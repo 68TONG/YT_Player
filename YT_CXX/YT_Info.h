@@ -16,9 +16,9 @@ class YT_Info : public QObject
         QML_ELEMENT
         QML_SINGLETON
 
-        explicit YT_Info(QObject* parent = nullptr);
+private:
+    explicit YT_Info(QObject* parent = nullptr);
     ~YT_Info();
-
 public:
     std::atomic<bool> aboutToQuit = false;
     static YT_Info& getObject();

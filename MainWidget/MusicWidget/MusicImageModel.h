@@ -5,7 +5,6 @@
 class MusicImageModel : public QQuickImageProvider
 {
     Q_OBJECT
-
 public:
     explicit MusicImageModel();
     virtual QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;

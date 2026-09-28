@@ -52,6 +52,7 @@ public:
 
     static int getBestMusicTag(const QList<QJsonObject>& tags, const QJsonObject& data, const QString& ex_album = {});
     static int MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QByteArray& data);
+    static QString outputFileCover(QString file_path);
 private:
     QNetworkAccessManager network_manager;
     QHash<QThread*, QNetworkAccessManager*> network_manager_list;

@@ -1,7 +1,8 @@
 #ifndef FILEWIDGET_H
 #define FILEWIDGET_H
 
-#include <YT_GeneralH.h>
+#include <QQuickItem>
+#include <FileListModel.h>
 #include <FileItemModel.h>
 #include <YT_PathWidgetModel.h>
 #include <YT_SearchWidgetModel.h>
@@ -16,6 +17,8 @@ class FileWidget : public QQuickItem
 public:
     explicit FileWidget(QQuickItem* parent = nullptr);
 
+    Q_INVOKABLE QString getFileInfo_CoverPath(QString info_path);
+
     Q_INVOKABLE void create(const QString& path);
     Q_INVOKABLE void createFolder(const QString& path);
     Q_INVOKABLE void copy(const QString& path);
@@ -26,20 +29,28 @@ protected:
     QString operationType = {};
     QList<QString> operationPaths = {};
 
+    Q_PROPERTY(FileItemModel* itemModel READ getItemModel CONSTANT)
+        FileItemModel itemModel;
+    FileItemModel* getItemModel() { return &itemModel; }
+
+    Q_PROPERTY(FileListModel* listModel READ getListModel CONSTANT)
+        FileListModel listModel;
+    FileListModel* getListModel() { return &listModel; }
+
     Q_PROPERTY(YT_PathWidgetModel* pathModel READ getPathModel CONSTANT)
         YT_PathWidgetModel pathModel;
     YT_PathWidgetModel* getPathModel() { return &pathModel; };
+    void pathModelFunc();
 
     Q_PROPERTY(YT_SearchWidgetModel* searchModel READ getSearchModel CONSTANT)
         YT_SearchWidgetModel searchModel;
     YT_SearchWidgetModel* getSearchModel() { return &searchModel; };
 
-    Q_PROPERTY(FileItemModel* curModel READ getCurModel WRITE setCurModel NOTIFY curModelChanged)
-        FileItemModel* curModel = nullptr;
-    FileItemModel* getCurModel() const { return curModel; };
-    void setCurModel(FileItemModel*& data);
-    Q_SIGNAL void curModelChanged();
-    void curModelPathChanged();
+    Q_PROPERTY(QString curListInfoPath READ getCurListInfoPath WRITE setCurListInfoPath NOTIFY curListInfoPathChanged)
+        QString curListInfoPath;
+    QString getCurListInfoPath() const { return curListInfoPath; };
+    void setCurListInfoPath(const QString& data);
+    Q_SIGNAL void curListInfoPathChanged();
 signals:
     void operationTypeChanged();
 };

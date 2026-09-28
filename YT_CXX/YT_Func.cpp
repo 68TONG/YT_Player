@@ -1,6 +1,8 @@
 #include "YT_Func.h"
+
 #include "YT_DataBase.h"
-#include "DB_DataBase.h"
+#include "DB_DatabaseInstance.h"
+#include "QImageReader"
 
 YT_Func::YT_Func(QObject* parent)
     : QObject{ parent }
@@ -45,7 +47,7 @@ Q_INVOKABLE void YT_Func::sendMessage(int type, QString message, int duration)
 {
     auto YT = qmlEngine->singletonInstance<QObject*>("YT_Player", "YT");
     auto mainMessage = YT->property("mainMessage").value<QObject*>();
-    QVariantMap data = { {"message", message}, {"type", type}, {"duration", duration} };
+    QVariantMap data = { { "message", message },{ "type", type },{ "duration", duration } };
     QMetaObject::invokeMethod(mainMessage, "open", QVariant(data));
 }
 
@@ -133,7 +135,8 @@ QString YT_Func::getChinesePinYin(const QString& data)
     auto dict = getChinese_Dict();
     chinese_util::PinyinResultString result;
     chinese_util::Pinyin::Convert(result, dict, data.toStdString(), chinese_util::PINYIN, true, "");
-    return QString::fromStdString(accumulate(result.pinyin->begin(), result.pinyin->end(), std::string{}));
+    return QString::fromStdString(result.pinyin->front()).remove(" ");
+    // return QString::fromStdString(accumulate(result.pinyin->begin(), result.pinyin->end(), std::string{}));
 }
 
 QString YT_Func::getChineseFirstPinYin(const QString& data)
@@ -141,7 +144,8 @@ QString YT_Func::getChineseFirstPinYin(const QString& data)
     auto dict = getChinese_Dict();
     chinese_util::PinyinResultString result;
     chinese_util::Pinyin::Convert(result, dict, data.toStdString(), chinese_util::PINYIN_FIRST, true, "");
-    return QString::fromStdString(accumulate(result.pinyin_first->begin(), result.pinyin_first->end(), std::string{}));
+    return QString::fromStdString(result.pinyin_first->front()).toUpper();
+    // return QString::fromStdString(accumulate(result.pinyin_first->begin(), result.pinyin_first->end(), std::string{}));
 }
 
 QByteArray YT_Func::getNetworkData(const QString& url, QThread* cur_thread)
@@ -249,7 +253,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Album(const QString& url)
     QJsonArray* target_vec = nullptr;
     QJsonArray Societies, Artist, Original_Song, Character_Song, YT_Lyrics_Url;
 
-    int sic = YT_Func::readXmlNext(xml_reader, "td", { {"class", "label"} }, "名称");
+    int sic = YT_Func::readXmlNext(xml_reader, "td", { { "class", "label" } }, "名称");
     if (sic == false)
     {
         qDebug() << url << " YT_Func::getTH_Wiki_Album error";
@@ -258,7 +262,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Album(const QString& url)
     sic = YT_Func::readXmlNext(xml_reader, "td", {}, "true");
     Album = xml_reader.text().toString().trimmed();
 
-    sic = YT_Func::readXmlNext(xml_reader, "td", { {"class", "label"} }, "制作方");
+    sic = YT_Func::readXmlNext(xml_reader, "td", { { "class", "label" } }, "制作方");
     sic = YT_Func::readXmlNext(xml_reader, "td");
     while (xml_reader.atEnd() == false)
     {
@@ -271,10 +275,10 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Album(const QString& url)
         Societies.append(xml_reader.text().toString().trimmed());
     }
 
-    sic = YT_Func::readXmlNext(xml_reader, "a", { {"class", "image"}, {"title", "封面图片"} });
+    sic = YT_Func::readXmlNext(xml_reader, "a", { { "class", "image" },{ "title", "封面图片" } });
     YT_Cover_Url = "https://thwiki.cc" + xml_reader.attributes().value("href").toString();
 
-    sic = YT_Func::readXmlNext(xml_reader, "table", { {"class", "wikitable musicTable"} });
+    sic = YT_Func::readXmlNext(xml_reader, "table", { { "class", "wikitable musicTable" } });
     if (sic == false)
     {
         qDebug() << url << " YT_Func::getTH_Wiki_Album wikitable musicTable error";
@@ -336,7 +340,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Album(const QString& url)
         if (attributes.hasAttribute("id") && attributes.value("class").toString().contains("info"))
         {
             inputRetTag();
-            YT_Func::readXmlNext(xml_reader, "td", { {"class", "title"} });
+            YT_Func::readXmlNext(xml_reader, "td", { { "class", "title" } });
             xml_reader.readNext();
 
             if (xml_reader.tokenType() == QXmlStreamReader::Characters)
@@ -350,7 +354,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Album(const QString& url)
             }
             else
             {
-                YT_Func::readXmlNext(xml_reader, "a", { {"href", ""} }, "true");
+                YT_Func::readXmlNext(xml_reader, "a", { { "href", "" } }, "true");
                 Title = xml_reader.text().toString().trimmed();
             }
             continue;
@@ -359,7 +363,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Album(const QString& url)
         xml_reader.readNext();
         if (attributes.value("class") == "label" && xml_reader.text() == "演唱")
         {
-            if (YT_Func::readXmlNext(xml_reader, "td", { {"class", "text"} }) == false)
+            if (YT_Func::readXmlNext(xml_reader, "td", { { "class", "text" } }) == false)
                 break;
             while (xml_reader.atEnd() == false)
             {
@@ -382,7 +386,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Album(const QString& url)
         }
         else if (attributes.value("class") == "label" && xml_reader.text() == "原曲")
         {
-            if (YT_Func::readXmlNext(xml_reader, "td", { {"class", "text"} }) == false)
+            if (YT_Func::readXmlNext(xml_reader, "td", { { "class", "text" } }) == false)
                 break;
             while (xml_reader.atEnd() == false)
             {
@@ -436,7 +440,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Lyrics(const QString& url)
             //     YT_Cover_Url = cover_xml_reader.attributes().value("href").toString();
             // }
 
-            YT_Func::readXmlNext(xml_reader, "a", { {"class", "image"} });
+            YT_Func::readXmlNext(xml_reader, "a", { { "class", "image" } });
             YT_Cover_Url = "https://thwiki.cc" + xml_reader.attributes().value("href").toString();
 
             YT_Func::readXmlNext(xml_reader, "a", {});
@@ -521,7 +525,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Lyrics(const QString& url)
             ret_tags.append(value);
         };
 
-    int sic = YT_Func::readXmlNext(xml_reader, "table", { {"class", "wikitable mw-collapsible"} });
+    int sic = YT_Func::readXmlNext(xml_reader, "table", { { "class", "wikitable mw-collapsible" } });
     if (sic == false)
     {
         auto search_data = QUrl::fromPercentEncoding(url.toUtf8());
@@ -544,7 +548,7 @@ QList<QJsonObject> YT_Func::getTH_Wiki_Lyrics(const QString& url)
 
     while (sic)
     {
-        sic = YT_Func::readXmlNext(xml_reader, "tr", { {"class", "mw-collapsible mw-collapsed"} });
+        sic = YT_Func::readXmlNext(xml_reader, "tr", { { "class", "mw-collapsible mw-collapsed" } });
         if (sic == false)
             break;
         analysisTagFunc();
@@ -734,7 +738,7 @@ int YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QByteArray& d
             QXmlStreamReader cover_xml_reader(YT_Func::getObject().getNetworkData(url, QThread::currentThread()));
             if ((cover_xml_reader.atEnd() == false) && (cover_xml_reader.hasError() == false))
             {
-                YT_Func::readXmlNext(cover_xml_reader, "a", { {"class", "internal"} });
+                YT_Func::readXmlNext(cover_xml_reader, "a", { { "class", "internal" } });
                 url = cover_xml_reader.attributes().value("href").toString();
             }
             if (url.isEmpty())
@@ -828,9 +832,87 @@ int YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QByteArray& d
         for (auto it : url_list)
         {
             auto data = getLyricsUrlData(it.toString());
-        if (data.isEmpty() == false)
-            coder.addLyricsStream(data);
+            if (data.isEmpty() == false)
+                coder.addLyricsStream(data);
         }
     }
     return Media::NoneError;
+}
+
+QString YT_Func::outputFileCover(QString file_path)
+{
+    // return {};
+    const QFileInfo file_info(file_path);
+    if (file_info.isFile() == false)
+        return {};
+
+    QString target_path = file_path;
+    const bool isQtSupported = QImageReader::supportedImageFormats().contains(file_info.suffix());
+    if (isQtSupported == false)
+    {
+        VideoBuffer media_buffer(target_path.toUtf8(), true);
+        if (media_buffer.isValid() == false) {
+            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_buffer isValid is false";
+            // qDebug() << qDebug_str;
+            return {};
+        }
+
+        QString file_suffix;
+        {
+            static const QMap<AVCodecID, QString> file_suffix_map = {
+                { AV_CODEC_ID_PNG,  "png" },
+                { AV_CODEC_ID_MJPEG, "jpg" },
+                { AV_CODEC_ID_MJPEG, "jpeg" }   // 注意：同一个 key 不能出现两次！
+            };
+            file_suffix = file_suffix_map.value(media_buffer.mediaStream()->codecpar->codec_id);
+            if (file_suffix.isEmpty()) {
+                return {};
+            }
+        }
+
+        target_path = "./YT_PlayerCache/" + file_info.baseName() + '.' + file_suffix;
+        MediaEncoder media_encoder;
+        int sic = media_encoder.setMediaPath(target_path.toUtf8());
+        if (sic < 0) {
+            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_encoder setMediaPath error";
+            // qDebug() << qDebug_str;
+            return {};
+        }
+
+        sic = media_encoder.addStream(&media_buffer);
+        if (sic < 0) {
+            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_encoder addStream error";
+            // qDebug() << qDebug_str;
+            return {};
+        }
+
+        sic = media_encoder.encodeRun();
+        if (sic < 0) {
+            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_encoder encodeRun error";
+            // qDebug() << qDebug_str;
+            return {};
+        }
+        media_encoder.release();
+    }
+
+    QFile file(target_path);
+    if (file.exists() == false || file.open(QIODevice::ReadOnly) == false) {
+        return {};
+    }
+
+    const QString file_hash = QCryptographicHash::hash(file.readAll(), QCryptographicHash::Md5).toHex();
+    const QString file_cover_path = "./YT_PlayerCache/" + file_hash + '.' + QFileInfo(target_path).suffix();
+
+    QImage q_image(target_path);
+    if (q_image.isNull() == false && q_image.scaledToWidth(300, Qt::SmoothTransformation).save(file_cover_path) == true) {
+        const auto db_thread = DB_DatabaseInstance::obj().db.thread();
+        QMetaObject::invokeMethod(db_thread, [file_path, file_hash] {
+            DB_DatabaseInstance::obj().setFileInfo_CoverHashValue(file_path, file_hash);
+            }, Qt::QueuedConnection);
+    }
+    if (isQtSupported == false) {
+        file.remove();
+    }
+
+    return file_hash;
 }

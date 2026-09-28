@@ -52,7 +52,7 @@ int MusicListModel::columnCount(const QModelIndex& parent) const
 QHash<int, QByteArray> MusicListModel::roleNames() const
 {
     return {
-        {Qt::DisplayRole, "infoId"}
+        { Qt::DisplayRole, "infoId" }
     };
 }
 
@@ -70,14 +70,22 @@ int MusicListModel::index(const QString& info_id) const
 
 QString MusicListModel::infoId(const int& index) const
 {
-    if (index < 0 || index >= infoIds.count()) return "";
+    if (index < 0 || index >= infoIds.count())
+        return {};
+
     return infoIds[index];
 }
 
 bool MusicListModel::move(int index, int at_index)
 {
     this->beginMoveRows(QModelIndex(), index, index, QModelIndex(), at_index + (at_index > index));
-    MusicDatabase::obj().setListInfo_SortIndex(infoIds[index], infoIds[at_index]);
+    int sic = MusicDatabase::obj().setListInfo_ListInfoIndex(infoIds[index], infoIds[at_index]);
+    if (sic < 0) {
+        qDebug() << "MusicListModel move setListInfo_ListInfoIndex return < 0";
+        this->endMoveRows();
+        return false;
+    }
+
     infoIds.move(index, at_index);
     this->endMoveRows();
     emit infoIdsChanged();
@@ -109,7 +117,7 @@ void MusicListModel::eraseInfo(const QString& info_id)
         qDebug() << "MusicListModel setInfoName playListInfo_Name is not erase";
         return;
     }
-    
+
     int sic = MusicDatabase::obj().deleteListInfo(info_id);
     if (sic < 0) {
         qDebug() << "MusicListModel eraseInfo deleteListInfo return < 0";
@@ -117,8 +125,11 @@ void MusicListModel::eraseInfo(const QString& info_id)
     }
 
     int index = infoIds.indexOf(info_id);
+    if (index < 0)
+        return;
+
     this->beginRemoveRows({}, index, index);
-    infoIds.remove(index);
+    infoIds.removeAt(index);
     if (dataModel->curListInfoID == info_id)
         dataModel->setCurListInfoID("");
     this->endRemoveRows();

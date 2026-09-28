@@ -1,6 +1,6 @@
 #pragma once
 
-#include <YT_Info.h>
+#include <QQuickItem>
 #include <QAbstractItemModel>
 
 class YT_ListModel : public QAbstractItemModel

@@ -3,11 +3,29 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 import Qt.labs.platform
-import YT_Player
+import QWindowKit as QWK
+import YT_Material as YT_M
 import HuskarUI.Basic
+import YT_Player
 
-YT_Window {
+Window {
     id: mainWindow
+    width: 900
+    height: 600
+    visible: false
+    color: YT_M.Theme.SurfaceContainer
+    onWidthChanged: YT_M.Theme.breakPointValue = width
+
+    QWK.WindowAgent {
+        id: windowAgent
+    }
+
+    Component.onCompleted: {
+        YT_M.Theme.breakPointList = [YT_M.Theme.BreakPointCompact, YT_M.Theme.BreakPointExpanded, YT_M.Theme.BreakPointExtraLarge];
+        windowAgent.setup(mainWindow);
+        // windowAgent.setTitleBar(titleBar);
+        mainWindow.visible = true;
+    }
 
     Item {
         Component.onCompleted: {
@@ -18,8 +36,152 @@ YT_Window {
         }
     }
 
-    YT_TransformWindow {
-        target: Window.window
+    // YT_TransformWindow {
+    //     target: Window.window
+    // }
+
+    GridLayout {
+        id: mainCompactLayout
+        visible: YT_M.Theme.breakPointType == YT_M.Theme.BreakPointCompact
+        anchors.fill: parent
+
+        LayoutItemProxy {
+            target: mainWidget
+            Layout.row: 0
+            Layout.column: 0
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.leftMargin: YT_M.Theme.Space200
+            Layout.rightMargin: YT_M.Theme.Space200
+        }
+    }
+
+    GridLayout {
+        id: mainExpandedLayout
+        visible: YT_M.Theme.breakPointType == YT_M.Theme.BreakPointExpanded
+        anchors.fill: parent
+
+        LayoutItemProxy {
+            target: navigationWidget
+            Layout.row: 0
+            Layout.rowSpan: 2
+            Layout.column: 0
+            Layout.preferredWidth: navigationWidget.collapseSize
+            Layout.fillHeight: true
+        }
+
+        LayoutItemProxy {
+            target: pathWidget
+            Layout.row: 0
+            Layout.column: 1
+            Layout.fillWidth: true
+            Layout.preferredHeight: pathWidget.implicitHeight
+        }
+
+        LayoutItemProxy {
+            target: mainWidget
+            Layout.row: 1
+            Layout.column: 1
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.rightMargin: YT_M.Theme.Space300
+        }
+    }
+
+    GridLayout {
+        id: mainExtraLargeLayout
+        visible: YT_M.Theme.breakPointType == YT_M.Theme.BreakPointExtraLarge
+        anchors.fill: parent
+
+        LayoutItemProxy {
+            target: navigationWidget
+            Layout.row: 0
+            Layout.rowSpan: 2
+            Layout.column: 0
+            Layout.preferredWidth: navigationWidget.expandSize
+            Layout.fillHeight: true
+        }
+
+        LayoutItemProxy {
+            target: pathWidget
+            Layout.row: 0
+            Layout.column: 1
+            Layout.fillWidth: true
+            Layout.preferredHeight: pathWidget.implicitHeight
+        }
+
+        LayoutItemProxy {
+            target: mainWidget
+            Layout.row: 1
+            Layout.column: 1
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.rightMargin: YT_M.Theme.Space300
+        }
+    }
+
+    YT_PathWidget {
+        id: pathWidget
+    }
+
+    YT_NavigationWidget {
+        id: navigationWidget
+        setPopup: mainExpandedLayout.visible
+        setExpanded: mainExtraLargeLayout.visible
+    }
+
+    SwipeView {
+        id: mainWidget
+        currentIndex: YT.widgetIndex
+        onCurrentIndexChanged: YT.widgetIndex = currentIndex
+        onCurrentItemChanged: currentItem.forceActiveFocus()
+
+        clip: true
+        spacing: YT_Info.Spacing
+        interactive: currentItem != editWidget
+
+        YT_MusicWidget {
+            id: musicWidget
+        }
+
+        YT_FileWidget {
+            id: fileWidget
+        }
+
+        // YT_PictureWidget {
+        //     id: pictureWidget
+        // }
+
+        NE_View {
+            id: editWidget
+        }
+
+        Flow {
+            id: testWidget
+            YT_M.Slider {}
+            Button {
+                text: "open Drawer"
+                onClicked: test.open()
+            }
+            YT_M.BottomSheet {
+                id: test
+                width: 640
+                height: 400
+                contentItem: Label {
+                    text: "Content goes here!"
+                    anchors.centerIn: parent
+                }
+            }
+            YT_M.FoldableView {
+                text: "Test"
+
+                foldableView: Rectangle {
+                    implicitWidth: 100
+                    implicitHeight: 50
+                    border.color: 'red'
+                }
+            }
+        }
     }
 
     SystemTrayIcon {
@@ -27,86 +189,14 @@ YT_Window {
         icon.source: "qrc:/Ui_Image/music_logo.png"
     }
 
-    Rectangle {
-        id: mainBackground
-        anchors.fill: parent
-        color: YT_Info.BackgroundColor
-        radius: YT_Info.Radius
-    }
-
-    GridLayout {
-        id: mainLayout
-        anchors.fill: parent
-        anchors.margins: YT_Info.Margin
-
-        rows: 2
-        rowSpacing: anchors.margins
-        columns: 3
-        columnSpacing: anchors.margins
-    }
-
-    YT_PathWidget {
-        id: pathWidget
-        parent: mainLayout
-
-        Layout.row: 0
-        Layout.column: 1
-        Layout.columnSpan: 2
-        Layout.fillWidth: true
-        Layout.preferredHeight: 30
-    }
-
-    Item {
-        z: +true
-        parent: mainLayout
-
-        Layout.row: 0
-        Layout.rowSpan: 2
-        Layout.column: 0
-        Layout.preferredWidth: navigationWidget.collapseSize + navigationWidget.padding * 2
-        Layout.fillHeight: true
-
-        YT_NavigationWidget {
-            id: navigationWidget
-            width: implicitWidth
-            height: parent.height
-
-            Behavior on implicitWidth {
-                NumberAnimation {
-                    duration: 180
-                    easing.type: Easing.OutQuad
-                }
-            }
-        }
-
-        MultiEffect {
-            source: navigationWidget
-            anchors.fill: navigationWidget
-
-            visible: opacity != 0
-            opacity: navigationWidget.expanded
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 180
-                    easing.type: Easing.OutQuad
-                }
-            }
-
-            shadowEnabled: true
-            shadowColor: YT_Info.FontColor
-            shadowBlur: 0.3
-        }
-    }
-
     YT_ScrollBarList {
         id: mainScrollBar
-        parent: mainLayout
 
-        Layout.row: 1
-        Layout.column: 2
-        Layout.preferredWidth: 10
-        Layout.fillHeight: true
-        Layout.rightMargin: YT_Info.MarginSmall
+        // Layout.row: 1
+        // Layout.column: 2
+        // Layout.preferredWidth: 10
+        // Layout.fillHeight: true
+        // Layout.rightMargin: YT_Info.MarginSmall
         Component.onCompleted: {
             YT.mainScrollBar = this;
         }
@@ -125,213 +215,9 @@ YT_Window {
         }
     }
 
-    HusNotification {}
+    // YT_ControlWidget {
+    //     id: controlWidget
+    // }
 
-    YT_ControlWidget {
-        id: controlWidget
-    }
-
-    YT_PageWidget {}
-
-    SwipeView {
-        id: mainWidget
-        parent: mainLayout
-        currentIndex: YT.widgetIndex
-        onCurrentIndexChanged: YT.widgetIndex = currentIndex
-        onCurrentItemChanged: currentItem.forceActiveFocus()
-
-        clip: true
-        spacing: YT_Info.Spacing
-        interactive: currentItem != editWidget
-
-        Layout.row: 1
-        Layout.column: 1
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-
-        YT_MusicWidget {
-            id: musicWidget
-        }
-
-        YT_FileWidget {
-            id: fileWidget
-        }
-
-        YT_PictureWidget {
-            id: pictureWidget
-        }
-
-        NE_View {
-            id: editWidget
-        }
-
-        // Flow {
-        //     spacing: 15
-        //     SplitView {
-        //         width: parent.width
-        //         height: 100
-        //         horizontalPadding: 10
-        //         Rectangle {
-        //             implicitWidth: 100
-        //             implicitHeight: 100
-        //             color: 'red'
-        //         }
-        //         Rectangle {
-        //             implicitWidth: 100
-        //             implicitHeight: 100
-        //             color: 'green'
-        //         }
-        //     }
-        //     HusButton {
-        //         type: HusButton.Type_Primary
-        //         text: 'Display normal message'
-        //         property int datas: 0
-        //         onClicked: {
-        //             YT_Func.sendMessage(datas % 4, "hello message");
-        //             datas = datas + 1;
-        //         }
-        //     }
-        //     YT_RoundImage {
-        //         asynchronous: true
-        //         radius: width / 2
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         source: "image://MusicImage/" + 2777
-        //     }
-        //     YT_RoundImage {
-        //         asynchronous: true
-        //         imageSource.mipmap: true
-        //         radius: width / 2
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         source: "image://MusicImage/" + 2777
-        //     }
-        //     YT_RoundImage {
-        //         asynchronous: true
-        //         imageSource.smooth: true
-        //         radius: width / 2
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         source: "image://MusicImage/" + 2777
-        //     }
-        //     YT_RoundImage {
-        //         radius: width / 2
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         source: 'https://avatars.githubusercontent.com/u/33405710?v=4'
-        //     }
-        //     YT_RoundImage {
-        //         radius: 15
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         source: 'https://avatars.githubusercontent.com/u/33405710?v=4'
-        //     }
-        //     HusAvatar {
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         imageSource: 'https://avatars.githubusercontent.com/u/33405710?v=4'
-        //     }
-        //     YT_Image {
-        //         id: imageSource
-        //         radius: 0
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         source: 'https://avatars.githubusercontent.com/u/33405710?v=4'
-        //     }
-        //     ShaderEffect {
-        //         property real radius: 50
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         property variant source: ShaderEffectSource {
-        //             sourceItem: imageSource
-        //         }
-        //         fragmentShader: "qrc:/Shaders/YT_RoundImage.frag.qsb"
-        //     }
-        //     YT_Image {
-        //         radius: width / 2
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         source: 'https://avatars.githubusercontent.com/u/33405710?v=4'
-        //     }
-        //     Rectangle {
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         color: 'green'
-        //         radius: width / 2
-        //     }
-        //     Rectangle {
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         color: 'green'
-        //         radius: width / 2
-        //         antialiasing: true
-        //     }
-        //     ShaderEffect {
-        //         implicitWidth: 100
-        //         implicitHeight: 100
-        //         //! [properties]
-        //         property variant source: ShaderEffectSource {
-        //             sourceItem: imageSource
-        //         }
-        //         property real bend
-        //         property real minimize
-        //         property real side: genieSlider.value
-        //         SequentialAnimation on bend {
-        //             loops: Animation.Infinite
-        //             NumberAnimation {
-        //                 to: 1
-        //                 duration: 700
-        //                 easing.type: Easing.InOutSine
-        //             }
-        //             PauseAnimation {
-        //                 duration: 1600
-        //             }
-        //             NumberAnimation {
-        //                 to: 0
-        //                 duration: 700
-        //                 easing.type: Easing.InOutSine
-        //             }
-        //             PauseAnimation {
-        //                 duration: 1000
-        //             }
-        //         }
-        //         SequentialAnimation on minimize {
-        //             loops: Animation.Infinite
-        //             PauseAnimation {
-        //                 duration: 300
-        //             }
-        //             NumberAnimation {
-        //                 to: 1
-        //                 duration: 700
-        //                 easing.type: Easing.InOutSine
-        //             }
-        //             PauseAnimation {
-        //                 duration: 1000
-        //             }
-        //             NumberAnimation {
-        //                 to: 0
-        //                 duration: 700
-        //                 easing.type: Easing.InOutSine
-        //             }
-        //             PauseAnimation {
-        //                 duration: 1300
-        //             }
-        //         }
-        //         //! [properties]
-        //         //! [vertex]
-        //         mesh: Qt.size(10, 10)
-        //         vertexShader: "qrc:/Shaders/genie.vert.qsb"
-        //         //! [vertex]
-        //         Slider {
-        //             id: genieSlider
-        //             anchors.left: parent.left
-        //             anchors.right: parent.right
-        //             anchors.bottom: parent.bottom
-        //             anchors.leftMargin: 4
-        //             anchors.rightMargin: 4
-        //             height: 40
-        //         }
-        //     }
-        // }
-    }
+    // YT_PageWidget {}
 }

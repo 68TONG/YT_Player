@@ -21,7 +21,7 @@ public:
 
     int getBuffer(int get_samples, uint8_t** buf_data);
     int fillFrame(AVFrame* frame);
-private:
+protected:
     int setMediaDecoder(MediaDecoder* decoder, int index = -1);
     int initConvertData();
 
@@ -33,8 +33,7 @@ private:
 
     int sample_index = 0;
     int sample_count = 0;
-
-private:
+protected:
     SwrContext* swr_ctx = nullptr;
     AudioFormat in_format, out_format;
 };

@@ -1,15 +1,31 @@
 #pragma once
-#include <YT_Info.h>
-#include <YT_Func.h>
-#include <YT_GeneralH.h>
+
+#include <QFileInfo>
+#include <QDirIterator>
 
 #include <QSqlQuery>
 #include <QSqlerror>
 #include <QSqlDatabase>
 
+#include <QJsonValue>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonParseError>
+
 namespace DB {
-    inline QString canonicalPath(const QString& path) {
-        return QFileInfo(path).canonicalFilePath();
+    inline const QString FileInfo = "FileInfo";
+    inline const QString FileListInfo = "FileListInfo";
+    inline const QString FileTagTranslateInfo = "FileTagTranslateInfo";
+    inline const QString MusicFileInfo = "MusicFileInfo";
+    inline const QString VideoFileInfo = "VideoFileInfo";
+    inline const QString PictureFileInfo = "PictureFileInfo";
+    inline const QString NetworkFileInfo = "NetworkFileInfo";
+    inline const QString CreatorInfo = "CreatorInfo";
+    inline const QString CreatorProfile = "CreatorProfile";
+
+    inline QString canonicalPath(const QString& data) {
+        return QFileInfo(data).canonicalFilePath();
     }
 
     inline QVariant jsTagFirst(const QJsonValue& data) {
@@ -19,9 +35,11 @@ namespace DB {
             return data.toArray().at(0).toVariant();
         return data.toVariant();
     }
+
     inline QVariant jsTagFirst(const QJsonObject& data, QString key) {
         return jsTagFirst(data.value(key));
     }
+
     template <typename T = QVariant>
     inline QList<T> jsTagList(const QJsonValue& data) {
         QList<T> list;
@@ -36,9 +54,28 @@ namespace DB {
         list.append(data.toVariant().value<T>());
         return list;
     }
+
     template <typename T = QVariant>
-    inline QList<T> jsTagList(const QJsonObject& data, QString key) {
-        return jsTagList<T>(data.value(key));
+    inline QList<T> jsTagList(const QJsonObject& data, QString json_path) {
+        return jsTagList<T>(data.value(json_path));
+    }
+
+    inline void jsToTagArray(const QJsonValue& value, QJsonArray& result) {
+        if (value.isObject()) {
+            const auto data = value.toObject();
+            for (const auto& it : data) {
+                jsToTagArray(it, result);
+            }
+        }
+        else if (value.isArray()) {
+            const auto data = value.toArray();
+            for (const auto& it : data) {
+                jsToTagArray(it, result);
+            }
+        }
+        else if (result.contains(value) == false) {
+            result.append(value);
+        }
     }
 
     template <typename T>
@@ -49,11 +86,13 @@ namespace DB {
         }
         return json;
     }
+
     template <typename T>
     QByteArray listToJsonByte(const QList<T>& list, QJsonDocument::JsonFormat format = QJsonDocument::Indented) {
         auto&& json = listToJson<T>(list);
         return QJsonDocument(json).toJson(format);
     }
+
     template <typename T>
     QList<T> listFromJson(const QJsonArray& json) {
         QList<T> list;
@@ -62,6 +101,7 @@ namespace DB {
         }
         return list;
     }
+
     template <typename T>
     QList<T> listFromJsonByte(const QByteArray& json_data) {
         QJsonParseError error;
@@ -78,87 +118,72 @@ namespace DB {
     }
 }
 
-class DB_FileInfo
+class DB_Info {};
+class DB_FileInfo : public DB_Info
 {
 public:
     DB_FileInfo() {}
     DB_FileInfo(QString filePath)
-        : filePath(filePath) {
-    }
-    DB_FileInfo(QSqlQuery& query) {
-        DB_FileInfo::fromSqlData(query);
-    }
-
-    virtual QString sqlQuery(QString table_name) const {
-        return QString("INSERT INTO %1 (%2, %3) VALUES (?, ?)")
-            .arg(table_name)
-            .arg(I_FilePath)
-            .arg(I_FileTag);
-    }
-    virtual QList<QVariant> toSqlData() const {
-        QList<QVariant> data;
-        data.append(DB::canonicalPath(filePath));
-        data.append(QJsonDocument(fileTag).toJson());
-        return data;
-    }
-    virtual void fromSqlData(QSqlQuery& query) {
-        Id = query.value(I_Id).toInt();
-        filePath = query.value(I_FilePath).toString();
-        fileTag = QJsonDocument::fromJson(query.value(I_FileTag).toByteArray()).object();
+        : filePath(filePath), fileInfo(filePath)
+    {
+        {}
     }
 
     int Id = -1;
     QString filePath = {};
-    QJsonObject fileTag = {};
+    QString fileTitle = {};
+    QJsonArray fileTag = {};
+    QFileInfo fileInfo = {};
 
     inline static const QString I_IsValid = "1";
     inline static const QString I_Id = "Id";
     inline static const QString I_FilePath = "filePath";
+    inline static const QString I_FileTitle = "fileTitle";
     inline static const QString I_FileTag = "fileTag";
+    inline static const QString I_CoverHashValue = "coverHashValue";
 };
 
-class DB_ListInfo
+class DB_ListInfo : public DB_Info
 {
 public:
     DB_ListInfo() {}
-    DB_ListInfo(QString name)
-        : name(name) {
-    }
-    DB_ListInfo(QSqlQuery& query) {
-        DB_ListInfo::fromSqlData(query);
-    }
-
-    virtual QString sqlQuery(QString table_name) const {
-        return QString("INSERT INTO %1 (%2, %3, %4, %5) VALUES (?, ?, ?, ?)")
-            .arg(table_name)
-            .arg(I_Name)
-            .arg(I_FileInfoIds)
-            .arg(I_SortTag)
-            .arg(I_SelectTag);
-    }
-    virtual QList<QVariant> toSqlData() const {
-        QList<QVariant> data;
-        data.append(name);
-        data.append(DB::listToJsonByte<int>(fileInfoIds, QJsonDocument::Compact));
-        data.append(sortTag);
-        data.append(DB::listToJsonByte<QString>(selectTag));
-        return data;
-    }
-    virtual void fromSqlData(QSqlQuery& query) {
-        name = query.value(I_Name).toString();
-        fileInfoIds = DB::listFromJsonByte<int>(query.value(I_FileInfoIds).toByteArray());
-        sortTag = query.value(I_SortTag).toString();
-        selectTag = DB::listFromJsonByte<QString>(query.value(I_SelectTag).toByteArray());
+    DB_ListInfo(QString name, QString type)
+        : name(name), type(type)
+    {
+        {}
     }
 
     QString name = {};
+    QString type = {};
     QList<int> fileInfoIds = {};
     QString sortTag = {};
     QList<QString> selectTag = {};
 
     inline static const QString I_IsValid = "1";
     inline static const QString I_Name = "name";
+    inline static const QString I_Type = "type";
     inline static const QString I_FileInfoIds = "fileInfoIds";
     inline static const QString I_SortTag = "sortTag";
     inline static const QString I_SelectTag = "selectTag";
+    inline static const QString I_ReverseSortTag = "reverseSortTag";
+
+    inline static const QString I_Type_Music = "Music";
+    inline static const QString I_Type_Video = "Video";
+    inline static const QString I_Type_Picture = "Picture";
 };
+
+class DB_CreatorInfo : public DB_Info
+{
+public:
+    DB_CreatorInfo() {}
+    DB_CreatorInfo(QString name)
+        : name(name)
+    {
+        {}
+    }
+
+    QString name = {};
+    inline static const QString I_IsValid = "1";
+    inline static const QString I_Name = "name";
+};
+

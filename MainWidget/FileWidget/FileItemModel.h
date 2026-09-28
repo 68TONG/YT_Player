@@ -1,57 +1,65 @@
 #ifndef FILEITEMMODEL_H
 #define FILEITEMMODEL_H
 
-#include <YT_GeneralH.h>
-#include <QAbstractItemModel>
+#include <DB_Info.h>
+#include <YT_ListModel.h>
 #include <QFileSystemWatcher>
+#include <QAbstractItemModel>
 
 class FileWidget;
 class FileItemModel : public QAbstractItemModel
 {
     Q_OBJECT
-    QML_ELEMENT
-    Q_PROPERTY(bool is_Hidden MEMBER is_Hidden)
-    Q_PROPERTY(QString currentDir READ getCurrentDir WRITE setCurrentDir NOTIFY currentDirChanged)
-    Q_PROPERTY(QList<int> headerIndex_List READ getHeaderIndex_List NOTIFY headerIndex_ListChanged)
-    friend FileWidget;
+        QML_ELEMENT
+        friend FileWidget;
 public:
-    enum FileInfoRole{
-        FileInfoRole_Name,
-        FileInfoRole_Size,
-        FileInfoRole_Type,
-        FileInfoRole_DateTime,
+    enum FileInfoRole {
+        InfoTitle_Role,
+        InfoTag_Role,
 
-        FileInfoRole_Path,
-        FileInfoRole_ChangeSignal,
+        FileName_Role,
+        FileSize_Role,
+        FileType_Role,
+        FileCreationDate_Role,
+        FileUpdatedDate_Role,
+        FilePath_Role
     };
     Q_ENUM(FileInfoRole)
-    explicit FileItemModel(QObject *parent = nullptr);
+public:
+    explicit FileItemModel(QObject* parent = nullptr);
 
-    QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override;
-    QModelIndex parent(const QModelIndex &index) const override;
+    QModelIndex index(int row, int column, const QModelIndex& parent = QModelIndex()) const override;
+    QModelIndex parent(const QModelIndex& index) const override;
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const override;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    int columnCount(const QModelIndex& parent = QModelIndex()) const override;
 
     QHash<int, QByteArray> roleNames() const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    Q_INVOKABLE QVariant data(const int &index, const int &role) const;
+    Q_INVOKABLE QByteArray roleNames(int role) const;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
+    Q_INVOKABLE QVariant dataIndex(const int& index, int role = Qt::DisplayRole) const;
+    // Q_INVOKABLE QList<QVariant> dataTag(const int& index, const QString& data) const;
+    // Q_INVOKABLE QVariant dataTag(const int& index, const QString& data, int ret_index) const;
+    // Q_INVOKABLE QList<QVariant> dataTag_InfoId(const int& info_id, const QString& data) const;
+    // Q_INVOKABLE QVariant dataTag_InfoId(const int& info_id, const QString& data, int ret_index) const;
+
+    Q_INVOKABLE void setInfoIds(const QDir& dir);
+    Q_INVOKABLE void setInfoIds(const QList<int>& info_ids);
+
+    // Q_INVOKABLE void sortInfoIds(const QString& sort_data);
+    Q_INVOKABLE void searchInfoIds(QString search_tag);
 private:
-    QList<QFileInfo> fileInfo_List;
+    QList<int> infoIds;
+    QHash<int, DB_FileInfo> infoList;
     QFileSystemWatcher modelWatcher;
 protected:
-    bool is_Hidden = true;
+    Q_PROPERTY(YT_ListModel* tagModel READ getTagModel CONSTANT)
+        YT_ListModel tagModel;
+    YT_ListModel* getTagModel() { return &tagModel; };
 
-    QString currentDir;
-    QString getCurrentDir() const { return currentDir; }
-    void setCurrentDir(const QString &path);
-
-    QList<int> headerIndex_List;
-    QList<int> getHeaderIndex_List() const { return headerIndex_List; }
-    Q_INVOKABLE QByteArray getHeaderName(const int index) const;
-signals:
-    void currentDirChanged();
-    void headerIndex_ListChanged();
+    Q_PROPERTY(YT_ListModel* selectTagModel READ getSelectTagModel CONSTANT)
+        YT_ListModel selectTagModel;
+    YT_ListModel* getSelectTagModel() { return &selectTagModel; };
 };
 
 #endif // FILEITEMMODEL_H

@@ -1,33 +1,39 @@
 #pragma once
 
 #include <DB_Info.h>
+#include <YT_Func.h>
 
-template <typename FileInfo_T = DB_FileInfo, typename ListInfo_T = DB_ListInfo>
+template <typename FileInfo_T, typename ListInfo_T>
 class DB_Database
 {
     static_assert(std::is_base_of<DB_FileInfo, FileInfo_T>::value, "FileInfo_T must inherit from Base");
     static_assert(std::is_base_of<DB_ListInfo, ListInfo_T>::value, "ListInfo_T must inherit from Base");
 protected:
-    QSqlDatabase db;
-    DB_Database(QString fileInfoTableName, QString listInfoTableName)
-        : fileInfoTableName(fileInfoTableName)
-        , listInfoTableName(listInfoTableName)
+    DB_Database()
     {
-        db = QSqlDatabase::addDatabase("QSQLITE");
-        db.setDatabaseName("C:/TONG/Code/YT_Player/YT_Database/YT_Database.db");
-        if (db.open() == false) {
-            qDebug() << "DB_Database: connection with database failed";
-        }
+        if (QSqlDatabase::contains() == false) {
+            auto db = QSqlDatabase::addDatabase("QSQLITE");
+            if (QFile::exists("C:/TONG/Code/YT_Player/YT_Database/YT_Database.db")) {
+                db.setDatabaseName("C:/TONG/Code/YT_Player/YT_Database/YT_Database.db");
+            }
+            else {
+                db.setDatabaseName("./YT_PlayerData/YT_Database.db");
+            }
+            if (db.open() == false) {
+                qWarning() << "DB_Database: connection with database failed";
+            }
 
-        // QSqlQuery query(db);
-        // query.exec("PRAGMA foreign_keys = ON");
-        // query.exec("PRAGMA foreign_keys");
-        // if (query.next() && query.value(0).toInt() == 1) {
-        //     qDebug() << "外键约束已启用";
-        // }
-        // else {
-        //     qWarning() << "警告：外键约束未能启用";
-        // }
+            QSqlQuery query(db);
+            query.exec("PRAGMA foreign_keys = ON");
+            query.exec("PRAGMA foreign_keys");
+            if (query.next() && query.value(0).toInt() == 1) {
+                qDebug() << "外键约束已启用";
+            }
+            else {
+                qWarning() << "警告：外键约束未能启用";
+            }
+        }
+        db = QSqlDatabase::database();
     }
     ~DB_Database() {}
 
@@ -65,32 +71,43 @@ protected:
         const QString tableName;
     };
 public:
-    QSqlDatabase getSqlDatabase() const
-    {
-        return db;
+
+    QSqlDatabase db;
+    virtual FileInfo_T initFileInfo(QSqlQuery& query) {
+        FileInfo_T info;
+        initFileInfo(info, query);
+        return info;
+    }
+
+    virtual void initFileInfo(FileInfo_T& info, QSqlQuery& query) {
+        info.Id = query.value(DB_FileInfo::I_Id).toInt();
+        info.filePath = query.value(DB_FileInfo::I_FilePath).toString();
+        info.fileTitle = query.value(DB_FileInfo::I_FileTitle).toString();
+        info.fileTag = QJsonDocument::fromJson(query.value(DB_FileInfo::I_FileTag).toByteArray()).array();
     }
 
     virtual FileInfo_T getFileInfo(int info_id)
     {
-        QString sql = QString("SELECT * FROM %1 WHERE Id = %2")
-            .arg(fileInfoTableName)
-            .arg(info_id);
+        QString sql = QString("SELECT Id, filePath, fileTitle, fileTag FROM %1 WHERE Id = ?")
+            .arg(DB::FileInfo);
 
         QSqlQuery query;
         query.prepare(sql);
+        query.addBindValue(info_id);
         if (query.exec() == false || query.next() == false) {
             qDebug() << "DB_Database getFileInfo failed - info_id:" << info_id
                 << "error:" << query.lastError().text();
             return {};
         }
-        return FileInfo_T(query);
+
+        return initFileInfo(query);
     }
 
     virtual QVariant getFileInfo(int info_id, QString index)
     {
         QString sql = QString("SELECT %1 FROM %2 WHERE Id = ?")
             .arg(index)
-            .arg(fileInfoTableName);
+            .arg(DB::FileInfo);
 
         QSqlQuery query;
         query.prepare(sql);
@@ -109,7 +126,7 @@ public:
         QString sql = QString(R"(
             SELECT * FROM %1 AS F_Info
             JOIN %2 AS T_Ids ON F_Info.Id = T_Ids.Id
-        )").arg(fileInfoTableName).arg(temp_table.tableName);
+        )").arg(DB::FileInfo).arg(temp_table.tableName);
 
         QSqlQuery query;
         query.prepare(sql);
@@ -121,121 +138,105 @@ public:
 
         QHash<int, FileInfo_T> info_list;
         while (query.next()) {
-            FileInfo_T info(query);
+            FileInfo_T info = initFileInfo(query);
             info_list.insert(info.Id, info);
         }
         return info_list;
     }
 
-    virtual int getFileInfo_ID(QString path)
+    virtual int getFileInfo_Id(QString path)
     {
         QString sql = QString("SELECT Id FROM %1 WHERE filePath = ?")
-            .arg(fileInfoTableName);
+            .arg(DB::FileInfo);
 
         QSqlQuery query;
         query.prepare(sql);
         query.addBindValue(DB::canonicalPath(path));
         if (query.exec() == false || query.next() == false) {
-            // qDebug() << "DB_Database getFileInfo_ID failed - path:" << path << "error:" << query.lastError().text();
+            // qDebug() << "DB_Database getFileInfo_Id failed - path:" << path << "error:" << query.lastError().text();
             return -1;
         }
         return query.value(0).toInt();
     }
 
-    virtual QList<QString> getFileInfo_TagKeys(QString list_id)
+    virtual QString getFileInfo_CoverHashValue(QString file_path)
     {
-        auto info_ids = getListInfo_FileIds(list_id);
-        return getFileInfo_TagKeys(info_ids);
+        int info_id = getFileInfo_Id(file_path);
+        if (info_id < 0) return {};
+        return getFileInfo(info_id, DB_FileInfo::I_CoverHashValue).toString();
     }
 
-    virtual QList<QString> getFileInfo_TagKeys(const QList<int>& info_ids)
+    virtual QList<QString> getFileInfo_TagValues(QString list_id)
+    {
+        auto&& info_ids = getListInfo_FileIds(list_id);
+        return getFileInfo_TagValues(info_ids);
+    }
+
+    virtual QList<QString> getFileInfo_TagValues(const QList<int>& info_ids)
     {
         TempIdsTable temp_table(info_ids);
         QString sql = QString(R"(
-            SELECT DISTINCT json_each.key
+            SELECT DISTINCT json_each.value
             FROM %1 AS F_Info
             JOIN %2 AS T_Ids ON F_Info.Id = T_Ids.Id
             CROSS JOIN json_each(F_Info.fileTag)
-        )").arg(fileInfoTableName).arg(temp_table.tableName);
+        )").arg(DB::FileInfo).arg(temp_table.tableName);
 
         QSqlQuery query;
         query.prepare(sql);
-        QList<QString> tag_keys;
-        if (query.exec() == false) {
-            qDebug() << "DB_Database getFileInfo_TagKeys failed - info_ids:" << info_ids
-                << "error:" << query.lastError().text();
-            return tag_keys;
-        }
-        while (query.next()) {
-            tag_keys.append(query.value(0).toString());
-        }
-        return tag_keys;
-    }
-
-    virtual QList<QString> getFileInfo_TagValues(QString list_id, QString tag_key)
-    {
-        auto info_ids = getListInfo_FileIds(list_id);
-        return getFileInfo_TagValues(info_ids, tag_key);
-    }
-
-    virtual QList<QString> getFileInfo_TagValues(const QList<int>& info_ids, QString tag_key)
-    {
-        TempIdsTable temp_table(info_ids);
-        QString sql = QString(R"(
-            SELECT DISTINCT json_tree.value
-            FROM %1 AS F_Info
-            JOIN %2 AS T_Ids ON F_Info.Id = T_Ids.Id
-            CROSS JOIN json_tree(F_Info.fileTag, :tag_key)
-        )").arg(fileInfoTableName).arg(temp_table.tableName);
-
-        QSqlQuery query;
-        query.prepare(sql);
-        query.bindValue(":tag_key", "$." + tag_key);
         if (query.exec() == false) {
             qDebug() << "DB_Database getFileInfo_TagValues failed - info_ids:" << info_ids
                 << "error:" << query.lastError().text();
             return {};
         }
 
-        QList<QString> tag_values;
+        QList<QString> ret_datas;
         while (query.next()) {
-            tag_values.append(query.value(0).toString());
+            ret_datas.append(query.value(0).toString());
         }
-        return tag_values;
+        return ret_datas;
     }
 
-    virtual int addFileInfo(QString path)
+    virtual QList<QString> getFileInfo_TagValues_CreatorId(QString creator_id)
     {
-        int info_id = getFileInfo_ID(path);
-        if (info_id >= 0) return info_id;
-
-        FileInfo_T info(path);
-        return addFileInfo(info);
+        auto&& info_ids = getCreatorInfo_FileIds(creator_id);
+        return getFileInfo_TagValues(info_ids);
     }
 
     virtual int addFileInfo(const FileInfo_T& info)
     {
-        if (QFile::exists(info.filePath) == false) return -1;
+        QString sql = QString("INSERT INTO %1 (%2, %3, %4) VALUES (?, ?, ?)")
+            .arg(DB::FileInfo)
+            .arg(DB_FileInfo::I_FilePath)
+            .arg(DB_FileInfo::I_FileTitle)
+            .arg(DB_FileInfo::I_FileTag);
 
         QSqlQuery query;
-        query.prepare(info.sqlQuery(fileInfoTableName));
-        const auto sql_data = info.toSqlData();
-        for (const auto& it : sql_data) {
-            query.addBindValue(it);
-        }
-
+        query.prepare(sql);
+        query.addBindValue(DB::canonicalPath(info.filePath));
+        query.addBindValue(info.fileTitle);
+        query.addBindValue(QJsonDocument(info.fileTag).toJson(QJsonDocument::Indented));
         if (query.exec() == false) {
             qDebug() << "DB_Database addFileInfo failed - path:" << info.filePath
                 << "error:" << query.lastError().text();
-            return -2;
+            return -1;
         }
         return query.lastInsertId().toInt();
+    }
+
+    virtual int addFileInfo(QString file_path)
+    {
+        int info_id = getFileInfo_Id(file_path);
+        if (info_id >= 0) return info_id;
+
+        FileInfo_T info(file_path);
+        return addFileInfo(info);
     }
 
     virtual int setFileInfo(int info_id, QString index, const QVariant& data)
     {
         QString sql = QString("UPDATE %1 SET %2 = :data WHERE Id = :info_id")
-            .arg(fileInfoTableName)
+            .arg(DB::FileInfo)
             .arg(index);
 
         QSqlQuery query;
@@ -250,10 +251,17 @@ public:
         return 0;
     }
 
+    virtual int setFileInfo_CoverHashValue(QString file_path, QString file_hash)
+    {
+        int info_id = getFileInfo_Id(file_path);
+        if (info_id < 0) return -1;
+        return setFileInfo(info_id, DB_FileInfo::I_CoverHashValue, file_hash);
+    }
+
     virtual int deleteFileInfo(int info_id)
     {
         QString sql = QString("DELETE FROM %1 WHERE Id = %2")
-            .arg(fileInfoTableName)
+            .arg(DB::FileInfo)
             .arg(info_id);
 
         QSqlQuery query;
@@ -281,13 +289,13 @@ public:
                     ELSE 0 END,
                 fileInfoIds = json(:file_ids) 
             WHERE name = :list_id
-        )").arg(listInfoTableName);
+        )").arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
         query.bindValue(":list_id", list_id);
-        query.bindValue(":sort_tag", sort_tag != "Id" ? sort_tag : QVariant());
-        query.bindValue(":reverse_sort_tag", sort_tag == "Id");
+        query.bindValue(":sort_tag", sort_tag != DB_ListInfo::I_ReverseSortTag ? sort_tag : QVariant());
+        query.bindValue(":reverse_sort_tag", sort_tag == DB_ListInfo::I_ReverseSortTag);
         query.bindValue(":file_ids", DB::listToJsonByte<int>(info_ids));
         if (query.exec() == false)
         {
@@ -300,84 +308,75 @@ public:
 
     virtual int sortFileInfo(QList<int>& info_ids, QString sort_tag)
     {
-        if (sort_tag == "Id") {
+        if (sort_tag == DB_ListInfo::I_ReverseSortTag) {
             std::reverse(info_ids.begin(), info_ids.end());
-            return 0;
         }
-
-        TempIdsTable temp_table(info_ids);
-        QString sql = QString(R"(
-            SELECT 
-                F_Info.Id AS Id,
-                CASE WHEN json_each.type = 'object'
-                THEN '' 
-                WHEN json_each.type = 'array'
-                THEN json_extract(json_each.value, '$[0]')
-                ELSE json_each.value 
-                END AS TagValue
-            FROM %1 AS F_Info
-            JOIN %2 AS T_Ids ON F_Info.Id = T_Ids.Id
-            CROSS JOIN json_each(F_Info.fileTag)
-            WHERE json_each.key = :sort_tag
-        )").arg(fileInfoTableName).arg(temp_table.tableName);
-
-        QSqlQuery query;
-        query.prepare(sql);
-        query.bindValue(":sort_tag", sort_tag);
-        if (query.exec() == false) {
-            qDebug() << "DB_Database sortListInfo_FileIds failed - sort_tag:" << sort_tag
-                << "error:" << query.lastError().text();
-            return -1;
-        }
-
-        QHash<int, QString> sort_container;
-        while (query.next()) {
-            auto data = YT_Func::getObject().getChinesePinYin(query.value("TagValue").toString());;
-            sort_container.insert(query.value("ID").toInt(), data);
-        }
-        std::stable_sort(info_ids.begin(), info_ids.end(), [this, sort_container](const int& v1, const int& v2) -> bool
-            { return QString::compare(sort_container[v1], sort_container[v2], Qt::CaseInsensitive) < 0; });
         return 0;
     }
 
-    virtual QList<int> searchFileInfo(QString list_id, QString search_tag, QString header_tag = "")
+    virtual QList<int> searchFileInfo(QString list_id, QString search_tag)
     {
-        auto info_ids = getListInfo_FileIds(list_id);
-        return searchFileInfo(info_ids, search_tag, header_tag);
+        auto&& info_ids = getListInfo_FileIds(list_id);
+        return searchFileInfo(info_ids, search_tag);
     }
 
-    virtual QList<int> searchFileInfo(const QList<int>& info_ids, QString search_tag, QString header_tag = "")
+    virtual QList<int> searchFileInfo(const QList<int>& info_ids, QString search_tag)
     {
         TempIdsTable temp_table(info_ids);
         QString sql = QString(R"(
             SELECT DISTINCT F_Info.Id AS Id
             FROM %1 AS F_Info
-            JOIN %2 AS T_Ids ON F_Info.Id = T_Ids.Id
-            CROSS JOIN json_tree(F_Info.fileTag, :header_tag)
-            WHERE json_tree.value GLOB :search_tag
-        )").arg(fileInfoTableName).arg(temp_table.tableName);
+            CROSS JOIN %2 AS T_Ids ON F_Info.Id = T_Ids.Id
+            CROSS JOIN json_each(F_Info.fileTag) AS F_Tag
+            WHERE F_Tag.value GLOB :search_tag
+        )").arg(DB::FileInfo).arg(temp_table.tableName);
+
+        // QString sql = QString(R"(
+        //     SELECT DISTINCT F_Info.Id AS Id
+        //     FROM %1 AS F_Info
+        //         JOIN
+        //         %2 AS T_Ids ON F_Info.Id = T_Ids.Id
+        //         CROSS JOIN
+        //         json_tree(F_Info.fileTag, :json_path) AS F_Tag ON F_Tag.type = 'text'
+        //         CROSS JOIN
+        //         json_each(:search_tag) AS S_Tag
+        //     WHERE F_Tag.value GLOB S_Tag.value;
+        // )").arg(DB::FileInfo).arg(temp_table.tableName);
 
         QSqlQuery query;
         query.prepare(sql);
         query.bindValue(":search_tag", search_tag);
-        query.bindValue(":header_tag", header_tag.isEmpty() ? "$" : "$." + header_tag);
-        QList<int> result_info_ids;
         if (query.exec() == false) {
-            qDebug() << "DB_Database searchFileInfo failed - search_tag:" << search_tag << " header_tag: " << header_tag
+            qDebug() << "DB_Database searchFileInfo failed - search_tag:" << search_tag
                 << "error:" << query.lastError().text();
-            return result_info_ids;
+            return {};
         }
 
+        QList<int> result_info_ids;
         while (query.next()) {
             result_info_ids.append(query.value("Id").toInt());
         }
         return result_info_ids;
     }
 
+    virtual ListInfo_T initListInfo(QSqlQuery& query) {
+        ListInfo_T info;
+        initListInfo(info, query);
+        return info;
+    }
+
+    virtual void initListInfo(ListInfo_T& info, QSqlQuery& query) {
+        info.name = query.value(DB_ListInfo::I_Name).toString();
+        info.type = query.value(DB_ListInfo::I_Type).toString();
+        info.fileInfoIds = DB::listFromJsonByte<int>(query.value(DB_ListInfo::I_FileInfoIds).toByteArray());
+        info.sortTag = query.value(DB_ListInfo::I_SortTag).toString();
+        info.selectTag = DB::listFromJsonByte<QString>(query.value(DB_ListInfo::I_SelectTag).toByteArray());
+    }
+
     virtual ListInfo_T getListInfo(QString info_id)
     {
-        QString sql = QString("SELECT * FROM %1 WHERE name = ?")
-            .arg(listInfoTableName);
+        QString sql = QString("SELECT name, type, fileInfoIds, sortTag, selectTag FROM %1 WHERE name = ?")
+            .arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
@@ -387,14 +386,15 @@ public:
                 << "error:" << query.lastError().text();
             return {};
         }
-        return ListInfo_T(query);
+
+        return initListInfo(query);
     }
 
     virtual QVariant getListInfo(QString info_id, QString index)
     {
         QString sql = QString("SELECT %1 FROM %2 WHERE name = ?")
             .arg(index)
-            .arg(listInfoTableName);
+            .arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
@@ -407,40 +407,42 @@ public:
         return query.value(0);
     }
 
-    virtual QList<QString> getListInfo_NameAll()
+    virtual QList<QString> getListInfo_NameAll(QString type)
     {
-        QString sql = QString("SELECT name FROM %1 ORDER BY sortIndex ASC")
-            .arg(listInfoTableName);
+        QString sql = QString("SELECT name FROM %1 WHERE type = ? ORDER BY listInfoIndex ASC")
+            .arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
-        QList<QString> info_list;
+        query.addBindValue(type);
         if (query.exec() == false) {
             qDebug() << "DB_Database getListInfo_NameAll failed"
                 << "error:" << query.lastError().text();
-            return info_list;
+            return {};
         }
+
+        QList<QString> info_names;
         while (query.next()) {
-            info_list.append(query.value(0).toString());
+            info_names.append(query.value(0).toString());
         }
-        return info_list;
+        return info_names;
     }
 
     virtual QList<int> getListInfo_FileIds(QString info_id)
     {
-        QString sql = QString("SELECT json_each.value FROM %1 AS L_Info, json_each(L_Info.fileInfoIds) WHERE L_Info.name = ?")
-            .arg(listInfoTableName);
+        QString sql = QString("SELECT value FROM json_each((SELECT fileInfoIds FROM %1 WHERE name = ?))")
+            .arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
         query.addBindValue(info_id);
-
-        QList<int> info_ids;
         if (query.exec() == false) {
             qDebug() << "DB_Database getListInfo_FileIds failed - info_id:" << info_id
                 << "error:" << query.lastError().text();
-            return info_ids;
+            return {};
         }
+
+        QList<int> info_ids;
         while (query.next()) {
             info_ids.append(query.value(0).toInt());
         }
@@ -449,13 +451,16 @@ public:
 
     virtual int addListInfo(const ListInfo_T& info)
     {
-        QSqlQuery query;
-        query.prepare(info.sqlQuery(listInfoTableName));
-        const auto sql_data = info.toSqlData();
-        for (const auto& it : sql_data) {
-            query.addBindValue(it);
-        }
+        QString sql = QString("INSERT INTO %1 (name, type, fileInfoIds, sortTag, selectTag) VALUES (?, ?, ?, ?, ?)")
+            .arg(DB::FileListInfo);
 
+        QSqlQuery query;
+        query.prepare(sql);
+        query.addBindValue(info.name);
+        query.addBindValue(info.type);
+        query.addBindValue(DB::listToJsonByte<int>(info.fileInfoIds, QJsonDocument::Compact));
+        query.addBindValue(info.sortTag);
+        query.addBindValue(DB::listToJsonByte<QString>(info.selectTag));
         if (query.exec() == false) {
             qDebug() << "DB_Database addListInfo failed - name:" << info.name
                 << "error:" << query.lastError().text();
@@ -473,13 +478,13 @@ public:
                 '$[#]', 
                 :file_id
             ) 
-            WHERE Name = :list_id
+            WHERE name = :list_id
             AND NOT EXISTS (
                 SELECT 1 
                 FROM json_each(fileInfoIds) 
                 WHERE json_each.value = :file_id
             )
-        )").arg(listInfoTableName);
+        )").arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
@@ -494,9 +499,9 @@ public:
         return 0;
     }
 
-    virtual int addListInfo_FileIds(QString list_id, QString path)
+    virtual int addListInfo_FileIds(QString list_id, QString file_path)
     {
-        int file_id = addFileInfo(path);
+        int file_id = addFileInfo(file_path);
         if (file_id < 0) return file_id;
         return addListInfo_FileIds(list_id, file_id);
     }
@@ -511,13 +516,14 @@ public:
                 if (sic < 0) failed_paths.append(file_info.filePath());
                 continue;
             }
-
-            if (file_info.isDir() == false) continue;
-            QDirIterator file_iterator(file_info.filePath(), QDir::Files, QDirIterator::Subdirectories);
-            while (file_iterator.hasNext()) {
-                file_iterator.next();
-                int sic = addListInfo_FileIds(list_id, file_iterator.filePath());
-                if (sic < 0) failed_paths.append(file_iterator.filePath());
+            else if (file_info.isDir()) {
+                QDirIterator file_iterator(file_info.filePath(), QDir::Files, QDirIterator::Subdirectories);
+                while (file_iterator.hasNext()) {
+                    file_iterator.next();
+                    int sic = addListInfo_FileIds(list_id, file_iterator.filePath());
+                    if (sic < 0) failed_paths.append(file_iterator.filePath());
+                }
+                continue;
             }
         }
         return failed_paths;
@@ -526,7 +532,7 @@ public:
     virtual int setListInfo(QString info_id, QString index, const QVariant& data)
     {
         QString sql = QString("UPDATE %1 SET %2 = :data WHERE name = :info_id")
-            .arg(listInfoTableName)
+            .arg(DB::FileListInfo)
             .arg(index);
 
         QSqlQuery query;
@@ -541,60 +547,59 @@ public:
         return 0;
     }
 
-    virtual int setListInfo_SortIndex(QString info_id, QString target_id)
+    virtual int setListInfo_ListInfoIndex(QString info_id, QString target_id)
     {
-        int info_sort_index = getListInfo(info_id, "sortIndex").toInt();
-        int target_sort_index = getListInfo(target_id, "sortIndex").toInt();
+        const auto info_type = getListInfo(info_id, DB_ListInfo::I_Type).toString();
+        const auto target_type = getListInfo(target_id, DB_ListInfo::I_Type).toString();
+        if (info_type != target_type || info_type.isEmpty() || target_type.isEmpty()) {
+            qDebug() << "DB_Database setListInfo_ListInfoIndex type mismatch - info_id:" << info_id << "target_id:" << target_id
+                << "info_type:" << info_type << "target_type:" << target_type;
+            return -1;
+        }
+
+        int info_index = getListInfo(info_id, "listInfoIndex").toInt();
+        int target_index = getListInfo(target_id, "listInfoIndex").toInt();
+        QString sql = QString(R"(
+            UPDATE %1
+            SET listInfoIndex =
+                CASE
+                    WHEN name = :info_id THEN :newIndex
+                    WHEN :newIndex < :oldIndex
+                        AND listInfoIndex >= :newIndex
+                        AND listInfoIndex < :oldIndex
+                    THEN listInfoIndex + 1
+                    WHEN :newIndex > :oldIndex
+                        AND listInfoIndex > :oldIndex
+                        AND listInfoIndex <= :newIndex
+                    THEN listInfoIndex - 1
+                    ELSE listInfoIndex
+                END
+            WHERE type = :type
+            AND (
+                name = :info_id
+                OR (
+                    :newIndex < :oldIndex
+                    AND listInfoIndex >= :newIndex
+                    AND listInfoIndex < :oldIndex
+                )
+                OR (
+                    :newIndex > :oldIndex
+                    AND listInfoIndex > :oldIndex
+                    AND listInfoIndex <= :newIndex
+                )
+            )
+        )").arg(DB::FileListInfo);
 
         QSqlQuery query;
-        QSqlDatabase db = QSqlDatabase::database();
-        if (db.transaction() == false) {
-            qDebug() << "DB_Database setListInfo_SortIndex failed - info_id:" << info_id
-                << "target_id:" << target_id << "error:" << db.lastError().text();
-            return -1;
-        }
-
-        try {
-            if (info_sort_index > target_sort_index) {
-                query.prepare(QString(R"(
-                    UPDATE %1 
-                    SET sortIndex = sortIndex + 1
-                    WHERE sortIndex >= :target AND sortIndex < :current
-                )").arg(listInfoTableName));
-                query.bindValue(":target", target_sort_index);
-                query.bindValue(":current", info_sort_index);
-            }
-            else {
-                query.prepare(QString(R"(
-                    UPDATE %1 
-                    SET sortIndex = sortIndex - 1
-                    WHERE sortIndex > :current AND sortIndex <= :target
-                )").arg(listInfoTableName));
-                query.bindValue(":current", info_sort_index);
-                query.bindValue(":target", target_sort_index);
-            }
-            if (query.exec() == false) {
-                throw QString("更新中间记录失败: %1").arg(query.lastError().text());
-            }
-
-            query.prepare(QString("UPDATE %1 SET sortIndex = :idx WHERE name = :id")
-                .arg(listInfoTableName));
-            query.bindValue(":idx", target_sort_index);
-            query.bindValue(":id", info_id);
-            if (query.exec() == false) {
-                throw QString("更新目标记录失败: %1").arg(query.lastError().text());
-            }
-
-            if (db.commit() == false) {
-                throw QString("提交事务失败: %1").arg(db.lastError().text());
-            }
-            return 0;
-        }
-        catch (const QString& error) {
-            db.rollback();
-            qDebug() << "DB_Database setListInfo_SortIndex failed - info_id:" << info_id
-                << "target_id:" << target_id << "error:" << error;
-            return -1;
+        query.prepare(sql);
+        query.bindValue(":info_id", info_id);
+        query.bindValue(":type", info_type);
+        query.bindValue(":oldIndex", info_index);
+        query.bindValue(":newIndex", target_index);
+        if (query.exec() == false) {
+            qDebug() << "DB_Database setListInfo_ListInfoIndex failed - info_id:" << info_id
+                << "target_id:" << target_id << "error:" << query.lastError().text();
+            return -3;
         }
         return 0;
     }
@@ -607,7 +612,7 @@ public:
     virtual int deleteListInfo(QString info_id)
     {
         QString sql = QString("DELETE FROM %1 WHERE name = ?")
-            .arg(listInfoTableName);
+            .arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
@@ -620,18 +625,17 @@ public:
         return 0;
     }
 
-    virtual int deleteListInfo_FileIds(QString info_id, int index)
+    virtual int deleteListInfo_FileIds(QString list_id, int index)
     {
-        QString sql = QString("UPDATE %1 SET fileInfoIds = json_remove(fileInfoIds, '$[:index]') WHERE name = :info_id")
-            .arg(listInfoTableName);
+        QString sql = QString("UPDATE %1 SET fileInfoIds = json_remove(fileInfoIds, '$[:index]') WHERE name = :list_id")
+            .arg(DB::FileListInfo);
 
         QSqlQuery query;
         query.prepare(sql);
         query.bindValue(":index", index);
-        query.bindValue(":info_id", info_id);
-        if (query.exec() == false)
-        {
-            qDebug() << "DB_Database deleteListInfo_FileIds failed - info_id:" << info_id
+        query.bindValue(":list_id", list_id);
+        if (query.exec() == false) {
+            qDebug() << "DB_Database deleteListInfo_FileIds failed - list_id:" << list_id
                 << "index:" << index
                 << "error:" << query.lastError().text();
             return -1;
@@ -639,6 +643,66 @@ public:
         return 0;
     }
 
-    const QString fileInfoTableName;
-    const QString listInfoTableName;
+    QList<QString> getCreatorInfo_NameAll()
+    {
+        QString sql = QString("SELECT name FROM %1")
+            .arg(DB::CreatorInfo);
+
+        QSqlQuery query;
+        query.prepare(sql);
+        if (query.exec() == false) {
+            qDebug() << "DB_Database getCreatorInfo_NameAll failed"
+                << "error: " << query.lastError().text();
+            return {};
+        }
+
+        QList<QString> info_list;
+        while (query.next()) {
+            info_list.append(query.value(0).toString());
+        }
+        return info_list;
+    }
+
+    QList<int> getCreatorInfo_FileIds()
+    {
+        QString sql = QString("SELECT fileId FROM %1")
+            .arg(DB::NetworkFileInfo);
+
+        QSqlQuery query;
+        query.prepare(sql);
+        if (query.exec() == false) {
+            qDebug() << "YT_FileDatabase getCreatorInfo_FileIds failed"
+                << "error: " << query.lastError().text();
+            return {};
+        }
+
+        QList<int> info_ids;
+        while (query.next()) {
+            info_ids.append(query.value(0).toInt());
+        }
+        return info_ids;
+    }
+
+    QList<int> getCreatorInfo_FileIds(QString info_id)
+    {
+        QString sql = QString("SELECT fileId FROM %1 WHERE creatorId = :creator_id")
+            .arg(DB::NetworkFileInfo);
+
+        QSqlQuery query;
+        query.prepare(sql);
+        query.bindValue(":creator_id", info_id);
+        if (query.exec() == false) {
+            qDebug() << "YT_FileDatabase getFileInfo_CreatorId failed - creator_id: " << info_id
+                << " error:" << query.lastError().text();
+            return {};
+        }
+
+        QList<int> info_ids;
+        while (query.next()) {
+            info_ids.append(query.value(0).toInt());
+        }
+        return info_ids;
+    }
+
+    const QString listInfoType;
 };

@@ -293,7 +293,7 @@ void MediaDecoder::stop()
     // }
 }
 
-void MediaDecoder::seek(int64_t seek_ts)
+void MediaDecoder::seek(int64_t ts, int stream_index, int64_t min_ts, int64_t max_ts, int flags)
 {
     is_seek = true;
 
@@ -306,7 +306,7 @@ void MediaDecoder::seek(int64_t seek_ts)
     //     it->second.Abort(false);
     // }
 
-    int sic = avformat_seek_file(format_ctx, -1, INT64_MIN, seek_ts, INT64_MAX, AVSEEK_FLAG_ANY);
+    int sic = avformat_seek_file(format_ctx, -1, min_ts, ts, max_ts, flags);
     if (sic < 0)
     {
         av_strerror(sic, error, sizeof(error));

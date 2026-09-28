@@ -110,20 +110,8 @@ int MediaEncoder::addStream(int stream_index, MediaDecoder* decoder)
 {
     if (decoder == nullptr)
         return Media::UnknownError;
-    auto source_stream = decoder->getStream(stream_index);
-    if (source_stream->disposition & AV_DISPOSITION_ATTACHED_PIC)
-    {
-        return addCoverStream(stream_index, decoder);
-    }
-    else if (Media::checkImageStream(source_stream)) {
-        return addCoverStream(stream_index, decoder);
-    }
-    // else if (cover_image_formats.count(format_ctx->oformat->name) &&
-    //     image_stream_type_list.count(source_stream->codecpar->codec_id))
-    // {
-    //     return addCoverStream(stream_index, decoder);
-    // }
 
+    auto source_stream = decoder->getStream(stream_index);
     auto stream = addStream(source_stream);
     if (stream == nullptr)
         return Media::UnknownError;
@@ -131,9 +119,14 @@ int MediaEncoder::addStream(int stream_index, MediaDecoder* decoder)
     stream->index = format_ctx->nb_streams - 1;
     stream->duration = source_stream->duration;
     stream->time_base = source_stream->time_base;
+    const bool checkImageStream_ret = Media::checkImageStream(source_stream);
+    if (checkImageStream_ret && Media::checkAttachedPicSupport(format_ctx->oformat->name, source_stream->codecpar->codec_id) == Media::NoneError)
+        stream->disposition = (stream->disposition | AV_DISPOSITION_ATTACHED_PIC);
 
     auto info = new EncodeInfo(stream->index, source_stream->index, decoder);
-    if (stream->codecpar->codec_type == AVMediaType::AVMEDIA_TYPE_AUDIO)
+    if (checkImageStream_ret)
+        info->type = MediaType::Image;
+    else if (stream->codecpar->codec_type == AVMediaType::AVMEDIA_TYPE_AUDIO)
         info->type = MediaType::Audio;
     else if (stream->codecpar->codec_type == AVMediaType::AVMEDIA_TYPE_VIDEO)
         info->type = MediaType::Video;
@@ -327,7 +320,7 @@ int MediaEncoder::encodeRun()
 
         for (auto it : media_decoder_list)
         {
-            it->seek(0);
+            it->seek(0, -1, INT64_MIN, INT64_MAX, AVSEEK_FLAG_BACKWARD);
             it->setStreams_ID({});
             it->clearDecoders();
 

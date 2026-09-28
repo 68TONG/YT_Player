@@ -42,18 +42,19 @@ public:
     Q_INVOKABLE QVariant dataTag(const int& index, const QString& data, int ret_index) const;
     Q_INVOKABLE QList<QVariant> dataTag_InfoId(const int& info_id, const QString& data) const;
     Q_INVOKABLE QVariant dataTag_InfoId(const int& info_id, const QString& data, int ret_index) const;
-    Q_INVOKABLE QList<QVariant> tagData(const int& index, const QString& tag_index) const;
 
     Q_INVOKABLE void updateInfo(const int& info_id);
     Q_INVOKABLE void updateInfo(const QList<int>& info_ids);
 
     Q_INVOKABLE void setInfoIds(const QString& info_id);
     Q_INVOKABLE void setInfoIds(const QList<int>& info_ids);
-    Q_INVOKABLE void sortInfoIds(const QString& sort_data);
-    Q_INVOKABLE void searchInfoIds(const QString& search_tag, const QString& header_tag);
 
-    Q_INVOKABLE void setViewPosition(const QString& data);
-    Q_INVOKABLE void setFooterPosition(const QString& data);
+    Q_INVOKABLE void sortInfoIds(QString sort_data);
+    Q_INVOKABLE void searchInfoIds(QString search_tag, QString header_tag);
+
+    Q_INVOKABLE void setViewPosition(QString data);
+    Q_INVOKABLE void setViewPositionEx(QString index, QString data);
+    Q_INVOKABLE void setFooterPosition(int index);
 protected:
     QList<int> infoIds;
     QHash<int, MusicFileInfo> infoList;
@@ -80,6 +81,12 @@ protected:
     QList<QString> getFooterModel() const { return footerModel; }
     Q_SIGNAL void footerModelChanged();
     void updateFooterModel();
+
+    Q_PROPERTY(QList<QString> footerModelEx READ getFooterModelEx NOTIFY footerModelExChanged)
+        QList<QString> footerModelEx = {};
+    QList<QString> getFooterModelEx() const { return footerModelEx; }
+    Q_SIGNAL void footerModelExChanged();
+    void updateFooterModelEx(int index, QString data);
 
     Q_PROPERTY(QList<double> itemStretchFactor READ getItemStretchFactor NOTIFY itemStretchFactorChanged)
         QList<double> itemStretchFactor = {};

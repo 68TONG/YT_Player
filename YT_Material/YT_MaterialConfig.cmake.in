@@ -1,0 +1,21 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+set(QWindowKit_DIR "${PACKAGE_PREFIX_DIR}/lib/cmake/QWindowKit")
+find_dependency(QWindowKit REQUIRED COMPONENTS Quick)
+find_dependency(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml)
+
+include("${CMAKE_CURRENT_LIST_DIR}/YT_MaterialTargets.cmake")
+
+set_and_check(YT_Material_QML_IMPORT_PATH "@PACKAGE_YT_MATERIAL_QML_INSTALL_DIR@")
+if(DEFINED QML_IMPORT_PATH)
+    list(FIND QML_IMPORT_PATH "${YT_Material_QML_IMPORT_PATH}" _found_index)
+    if(_found_index EQUAL -1)
+        list(APPEND QML_IMPORT_PATH "${YT_Material_QML_IMPORT_PATH}")
+        set(QML_IMPORT_PATH "${QML_IMPORT_PATH}" CACHE PATH "QML import path" FORCE)
+    endif()
+else()
+    set(QML_IMPORT_PATH "${YT_Material_QML_IMPORT_PATH}" CACHE PATH "QML import path")
+endif()
+
+check_required_components(YT_Material)

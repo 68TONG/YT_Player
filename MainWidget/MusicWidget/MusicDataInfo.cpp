@@ -1,8 +1,7 @@
 #include "MusicDataInfo.h"
 
-#include "MusicDatabase.h"
-
 MusicFileInfo::MusicFileInfo()
+    :DB_FileInfo()
 {
     {}
 }
@@ -10,40 +9,8 @@ MusicFileInfo::MusicFileInfo()
 MusicFileInfo::MusicFileInfo(QString filePath)
     : DB_FileInfo(filePath)
 {
-    getMusicMetaData(filePath, fileTag);
-}
-
-MusicFileInfo::MusicFileInfo(QSqlQuery& query)
-{
-    MusicFileInfo::fromSqlData(query);
-}
-
-QString MusicFileInfo::sqlQuery(QString table_name) const
-{
-    return QString("INSERT INTO %1 (%2, %3, %4, %5, %6) VALUES (?, ?, ?, ?, ?)")
-        .arg(table_name)
-        .arg(I_FilePath)
-        .arg(I_FileTag)
-        .arg(I_StarLevel)
-        .arg(I_PlayCount)
-        .arg(I_AddPlayCount);
-}
-
-QList<QVariant> MusicFileInfo::toSqlData() const
-{
-    auto&& data = DB_FileInfo::toSqlData();
-    data.append(starLevel);
-    data.append(playCount);
-    data.append(addPlayCount);
-    return data;
-}
-
-void MusicFileInfo::fromSqlData(QSqlQuery& query)
-{
-    DB_FileInfo::fromSqlData(query);
-    starLevel = query.value(I_StarLevel).toInt();
-    playCount = query.value(I_PlayCount).toInt();
-    addPlayCount = query.value(I_AddPlayCount).toInt();
+    getMusicMetaData(filePath, musicTag);
+    fileTitle = musicTag[Media::MetaData_Title].toString();
 }
 
 void MusicFileInfo::getMusicMetaData(const QString& path, QJsonObject& data)
@@ -102,13 +69,8 @@ MusicListInfo::MusicListInfo()
     {}
 }
 
-MusicListInfo::MusicListInfo(QString Name)
-    : DB_ListInfo(Name)
+MusicListInfo::MusicListInfo(QString name)
+    : DB_ListInfo(name, I_Type_Music)
 {
     {}
-}
-
-MusicListInfo::MusicListInfo(QSqlQuery& query)
-{
-    MusicListInfo::fromSqlData(query);
 }

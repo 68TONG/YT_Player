@@ -13,21 +13,13 @@ MusicImageModel::MusicImageModel()
 
 QPixmap MusicImageModel::requestPixmap(const QString& id, QSize* size, const QSize& requestedSize)
 {
-    if (YT_Info::getObject().aboutToQuit) return {};
+    // if (YT_Info::getObject().aboutToQuit) return {};
 
-    QString cover_hash = id;
-    if (id.size() != 32) {
-        const auto db_thread = MusicDatabase::obj().getSqlDatabase().thread();
-        QMetaObject::invokeMethod(db_thread, [id, &cover_hash]() {
-            cover_hash = MusicDatabase::obj().getFileInfo(id.toInt(), MusicFileInfo::I_CoverHashValue).toString();
-            }, Qt::BlockingQueuedConnection);
-    }
-
-    QPixmap target_data(cacheRootPath + cover_hash);
+    const QString cover_hash = id.size() == 32 ? id : YT_Func::outputFileCover(id);
+    QPixmap target_data("./YT_PlayerCache/" + cover_hash);
     if (target_data.isNull()) {
-        cover_hash = outputCoverCache(id.toInt());
+        target_data.load(":/Ui_Image/failed_image.png");
     }
-    target_data.load(cacheRootPath + cover_hash);
     if (target_data.isNull()) {
         return {};
     }
@@ -39,12 +31,42 @@ QPixmap MusicImageModel::requestPixmap(const QString& id, QSize* size, const QSi
     return target_data.scaled(target_width, target_height, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
+// QPixmap MusicImageModel::requestPixmap(const QString& id, QSize* size, const QSize& requestedSize)
+// {
+//     if (YT_Info::getObject().aboutToQuit) return {};
+
+//     // TimeDebugger debugger(TimeDebugger::TimeUnit::Milli);
+//     QString cover_hash = id;
+//     if (id.size() != 32) {
+//         const auto db_thread = MusicDatabase::obj().db.thread();
+//         QMetaObject::invokeMethod(db_thread, [id, &cover_hash]() {
+//             cover_hash = MusicDatabase::obj().getFileInfo(id.toInt(), MusicFileInfo::I_CoverHashValue).toString();
+//             }, Qt::BlockingQueuedConnection);
+//     }
+
+//     QPixmap target_data(cacheRootPath + cover_hash);
+//     if (target_data.isNull()) {
+//         cover_hash = outputCoverCache(id.toInt());
+//     }
+//     target_data.load(cacheRootPath + cover_hash);
+//     if (target_data.isNull()) {
+//         return {};
+//     }
+//     // debugger.elapsedSinceMilli(cover_hash.toStdString() + " MusicImageModel::requestPixmap: Load Image");
+
+//     if (size) *size = QSize(target_data.width(), target_data.height());
+//     const int target_width = requestedSize.width() > 0 ? requestedSize.width() : target_data.width();
+//     const int target_height = requestedSize.height() > 0 ? requestedSize.height() : target_data.height();
+//     if (requestedSize.width() < 0 && requestedSize.height() < 0) return target_data;
+//     return target_data.scaled(target_width, target_height, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+// }
+
 QString MusicImageModel::outputCoverCache(const int info_id)
 {
     QString info_path = "";
-    const auto db_thread = MusicDatabase::obj().getSqlDatabase().thread();
+    const auto db_thread = MusicDatabase::obj().db.thread();
     QMetaObject::invokeMethod(db_thread, [info_id](QString& ret) {
-        ret = MusicDatabase::obj().getFileInfo(info_id, DB_FileInfo::I_FilePath).toString();
+        ret = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_FilePath).toString();
         }, Qt::BlockingQueuedConnection
         , info_path);
     if (info_path.isEmpty()) return {};

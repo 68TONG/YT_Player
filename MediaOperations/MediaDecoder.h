@@ -33,7 +33,7 @@ public:
 
     void start();
     void stop();
-    void seek(int64_t seek_ts);
+    void seek(int64_t ts, int stream_index = -1, int64_t min_ts = INT64_MIN , int64_t max_ts = INT64_MAX, int flags = AVSEEK_FLAG_ANY);
     void release();
     CodecState state() const;
 

@@ -1,6 +1,8 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import YT_Player
+import YT_Material as YT_M
 
 RowLayout {
     id: root

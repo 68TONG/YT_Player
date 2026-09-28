@@ -2,11 +2,11 @@
 
 #include "MediaDecoder.h"
 
-VideoBuffer::VideoBuffer(const char* url)
+VideoBuffer::VideoBuffer(const char* url, bool is_image)
     : VoidBuffer(url)
 {
     if (is_valid == false) return;
-    int sic = setMediaDecoder(media_decoder);
+    int sic = setMediaDecoder(media_decoder, -1, is_image);
     if (sic < 0) {
         is_valid = false;
         return;
@@ -26,11 +26,11 @@ VideoBuffer::VideoBuffer(const char* url)
     is_valid = true;
 }
 
-VideoBuffer::VideoBuffer(MediaDecoder* decoder, int index)
+VideoBuffer::VideoBuffer(MediaDecoder* decoder, int index, bool is_image)
     : VoidBuffer(decoder)
 {
     if (is_valid == false) return;
-    int sic = setMediaDecoder(media_decoder, index);
+    int sic = setMediaDecoder(media_decoder, index, is_image);
     if (sic < 0) {
         is_valid = false;
         return;
@@ -167,27 +167,48 @@ int VideoBuffer::getBuffer(uint8_t** buf_data)
     return Media::NoneError;
 }
 
-int VideoBuffer::setMediaDecoder(MediaDecoder* decoder, int index)
+int VideoBuffer::setMediaDecoder(MediaDecoder* decoder, int index, bool is_image)
 {
     AVStream* stream = nullptr;
     AVFormatContext* format = decoder->getFormat_ctx();
 
-    if (index < 0 || index >= (int)format->nb_streams)
+    if ((index < 0 || index >= (int)format->nb_streams) && is_image == false)
     {
         index = av_find_best_stream(format, AVMediaType::AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
         if (index < 0)
         {
             char error[256];
             av_strerror(index, error, sizeof(error));
-            std::cout << "VideoBuferr setMediaDecoder av_find_best_stream " << error << std::endl;
+            std::cout << "VideoBuffer setMediaDecoder av_find_best_stream " << error << std::endl;
+            return Media::UnknownError;
+        }
+    }
+    else if ((index < 0 || index >= (int)format->nb_streams) && is_image == true)
+    {
+        for (int i = 0; i < (int)format->nb_streams; i++)
+        {
+            if (Media::checkImageStream(format->streams[i]))
+            {
+                index = i;
+                break;
+            }
+        }
+        if (index < 0)
+        {
+            // std::cout << "VideoBuffer setMediaDecoder checkImageStream failed" << std::endl;
             return Media::UnknownError;
         }
     }
 
     stream = format->streams[index];
+    if (is_image && Media::checkImageStream(stream) == false)
+    {
+        std::cout << "VideoBuffer setMediaDecoder is_image && checkImageStream(stream) == false" << std::endl;
+        return Media::UnknownError;
+    }
     if (stream->codecpar->codec_type != AVMEDIA_TYPE_VIDEO)
     {
-        std::cout << "VideoBuferr setMediaDecoder codec_type != AVMEDIA_TYPE_VIDEO" << std::endl;
+        std::cout << "VideoBuffer setMediaDecoder codec_type != AVMEDIA_TYPE_VIDEO" << std::endl;
         return Media::UnknownError;
     }
 
@@ -201,7 +222,6 @@ int VideoBuffer::setMediaDecoder(MediaDecoder* decoder, int index)
 
     return stream_index;
 }
-
 
 int VideoBuffer::initConvertData()
 {
@@ -290,4 +310,3 @@ int VideoBuffer::writeConvertBuffer(AVFrame** frame_ptr)
     av_frame_free(frame_ptr);
     return Media::NoneError;
 }
-

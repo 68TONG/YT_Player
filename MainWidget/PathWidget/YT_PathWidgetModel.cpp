@@ -51,7 +51,7 @@ Q_INVOKABLE void YT_PathWidgetModel::setSrcData(const QList<QString>& data)
     if (srcData.isEmpty()) {
         return;
     }
-    
+
     pathData.resize(srcData.count());
     typeData.resize(srcData.count());
     for (int i = 0;i < srcData.count();i++) {

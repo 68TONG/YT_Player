@@ -42,11 +42,23 @@ Menu {
     }
 
     component YT_MenuItem: MenuItem {
+        id: root_YT_MenuItem
         verticalPadding: YT_Info.MarginSmall
         horizontalPadding: YT_Info.Margin
-        implicitWidth: implicitContentWidth + leftPadding + rightPadding
+        implicitWidth: implicitContentWidth + leftPadding + rightPadding + (arrow.visible ? arrow.width : 0)
         implicitHeight: implicitContentHeight + topPadding + bottomPadding
 
+        arrow: YT_Indicator {
+            anchors.topMargin: parent.topPadding
+            anchors.rightMargin: parent.rightPadding
+            anchors.bottomMargin: parent.bottomPadding
+
+            visible: parent.subMenu
+            enabled: false
+            edgeType: Qt.RightEdge
+            modelData: "qrc:/Ui_Image/next_page.png"
+            background: null
+        }
         indicator: null
         background: null
         contentItem: YT_Text {
@@ -55,8 +67,10 @@ Menu {
     }
 
     component YT_MenuInputItem: YT_MenuItem {
-        property string placeholderText: ""
+        property string placeholderText
+        implicitWidth: implicitContentWidth + leftPadding + rightPadding + true
 
+        arrow: null
         text: contentItem.text
         contentItem: YT_TextInput {
             padding: 0
@@ -67,8 +81,14 @@ Menu {
 
     component YT_MenuSelectItem: YT_MenuItem {
         required property bool selected
+        implicitWidth: implicitContentWidth + leftPadding + rightPadding + (indicator.visible ? indicator.width : 0)
 
+        arrow: null
         indicator: YT_Indicator {
+            anchors.topMargin: parent.topPadding
+            anchors.rightMargin: parent.rightPadding
+            anchors.bottomMargin: parent.bottomPadding
+
             enabled: false
             visible: parent.selected
             edgeType: Qt.RightEdge

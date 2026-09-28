@@ -28,8 +28,10 @@ else()
     message("Target System Is Unknown")
 endif()
 
-target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}")
-target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/General")
+target_include_directories(${PROJECT_NAME} PUBLIC 
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/General"
+)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC "${FFmpeg_Library}")
 target_include_directories(${PROJECT_NAME} PUBLIC "${YT_Library}/FFmpeg/include")

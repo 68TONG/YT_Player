@@ -89,7 +89,7 @@ Q_INVOKABLE void MusicWidget::playMusic_Path(QString data)
     YT_AudioOutput::getObject().setSource(data);
     YT_AudioOutput::getObject().play();
 
-    const int infoId = MusicDatabase::obj().getFileInfo_ID(data);
+    const int infoId = MusicDatabase::obj().getFileInfo_Id(data);
     playIndex = playModel.indexOf(infoId);
     emit playIndexChanged();
 
@@ -158,8 +158,15 @@ void MusicWidget::addPlayMusic_Path(const QList<QString>& path_list)
 
 Q_INVOKABLE QString MusicWidget::getMusicInfo_CoverPath(int info_id)
 {
-    const auto data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_CoverHashValue).toString();
-    return "image://MusicImage/" + (data.isEmpty() ? QString::number(info_id) : data);
+    const auto data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_FilePath).toString();
+    return getMusicInfo_CoverPath(data);
+    // const auto data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_CoverHashValue).toString();
+}
+
+Q_INVOKABLE QString MusicWidget::getMusicInfo_CoverPath(QString info_path)
+{
+    const auto data = MusicDatabase::obj().getFileInfo_CoverHashValue(info_path);
+    return "image://MusicImage/" + (data.isEmpty() ? info_path : data);
 }
 
 Q_INVOKABLE int MusicWidget::updateMusicInfo(int info_id)
@@ -284,7 +291,7 @@ Q_INVOKABLE int MusicWidget::updateMusicInfo(int info_id)
 
 Q_INVOKABLE int MusicWidget::updateMusicInfo(const QString& path)
 {
-    return updateMusicInfo(MusicDatabase::obj().getFileInfo_ID(path));
+    return updateMusicInfo(MusicDatabase::obj().getFileInfo_Id(path));
 }
 
 Q_INVOKABLE int MusicWidget::updateMusicInfo_Local()
@@ -318,7 +325,7 @@ Q_INVOKABLE int MusicWidget::updateMusicInfo_Local(int info_id)
         qDebug() << "MusicWidget::updateMusicInfo_Local moveFile failed!\n file_path: " + file_path + " target_path: " + target_path;
         return -1;
     }
-    MusicDatabase::obj().setFileInfo(info_id, DB_FileInfo::I_FileTag, QJsonDocument(target_tags).toJson());
+    MusicDatabase::obj().setFileInfo(info_id, MusicFileInfo::I_FileTag, QJsonDocument(target_tags).toJson());
     fileModel.updateInfo(info_id);
     return 0;
 }
