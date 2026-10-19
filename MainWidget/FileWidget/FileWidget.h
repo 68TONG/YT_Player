@@ -17,8 +17,6 @@ class FileWidget : public QQuickItem
 public:
     explicit FileWidget(QQuickItem* parent = nullptr);
 
-    Q_INVOKABLE QString getFileInfo_CoverPath(QString info_path);
-
     Q_INVOKABLE void create(const QString& path);
     Q_INVOKABLE void createFolder(const QString& path);
     Q_INVOKABLE void copy(const QString& path);

@@ -1,7 +1,7 @@
 import QtQuick
-import YT_Material as YT
+import YT_Material as YT_M
 
-YT.Button {
+YT_M.Button {
     id: root
 
     enum StyleT {
@@ -21,10 +21,11 @@ YT.Button {
     property int widthType: IconButton.Default
 
     indicator: null
-    contentItem: YT.Icon {
+    contentItem: YT_M.Icon {
+        fontFill: root.iconFill
         iconSize: root.iconSize
+        iconColor: root.iconColor
         iconSource: root.iconSource
-        iconColor: root.iconColor || root.labelColor
 
         // Rectangle {
         //     anchors.fill: parent
@@ -38,39 +39,39 @@ YT.Button {
     horizontalPadding: {
         if (widthType == IconButton.Default) {
             if (sizeType == IconButton.Xsmall) {
-                return YT.Theme.Space75;
+                return YT_M.Theme.Space75;
             } else if (sizeType == IconButton.Small) {
-                return YT.Theme.Space100;
+                return YT_M.Theme.Space100;
             } else if (sizeType == IconButton.Medium) {
-                return YT.Theme.Space200;
+                return YT_M.Theme.Space200;
             } else if (sizeType == IconButton.Large) {
-                return YT.Theme.Space400;
+                return YT_M.Theme.Space400;
             } else if (sizeType == IconButton.Xlarge) {
-                return YT.Theme.Space600;
+                return YT_M.Theme.Space600;
             }
         } else if (widthType == IconButton.Narrow) {
             if (sizeType == IconButton.Xsmall) {
-                return YT.Theme.Space50;
+                return YT_M.Theme.Space50;
             } else if (sizeType == IconButton.Small) {
-                return YT.Theme.Space50;
+                return YT_M.Theme.Space50;
             } else if (sizeType == IconButton.Medium) {
-                return YT.Theme.Space150;
+                return YT_M.Theme.Space150;
             } else if (sizeType == IconButton.Large) {
-                return YT.Theme.Space200;
+                return YT_M.Theme.Space200;
             } else if (sizeType == IconButton.Xlarge) {
-                return YT.Theme.Space400;
+                return YT_M.Theme.Space400;
             }
         } else if (widthType == IconButton.Wide) {
             if (sizeType == IconButton.Xsmall) {
-                return YT.Theme.Space125;
+                return YT_M.Theme.Space125;
             } else if (sizeType == IconButton.Small) {
-                return YT.Theme.Space175;
+                return YT_M.Theme.Space175;
             } else if (sizeType == IconButton.Medium) {
-                return YT.Theme.Space300;
+                return YT_M.Theme.Space300;
             } else if (sizeType == IconButton.Large) {
-                return YT.Theme.Space600;
+                return YT_M.Theme.Space600;
             } else if (sizeType == IconButton.Xlarge) {
-                return YT.Theme.Space900;
+                return YT_M.Theme.Space900;
             }
         }
         return 0;
@@ -83,16 +84,16 @@ YT.Button {
     }
     labelColor: {
         if (enabled == false) {
-            return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.38);
+            return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.38);
         }
 
         if (styleType == IconButton.Standard) {
             if (checkable == false) {
-                return YT.Theme.OnSurfaceVariant;
+                return YT_M.Theme.OnSurfaceVariant;
             } else if (checked == false) {
-                return YT.Theme.OnSurfaceVariant;
+                return YT_M.Theme.OnSurfaceVariant;
             } else {
-                return YT.Theme.Primary;
+                return YT_M.Theme.Primary;
             }
         }
 

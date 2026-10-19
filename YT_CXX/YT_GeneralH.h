@@ -26,7 +26,7 @@
 #include <QThread>
 #include <QFuture>
 #include <QFutureWatcher>
-#include <QtConcurrent>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <QLocale>
 #include <QCollator>
@@ -38,7 +38,7 @@
 #include <QQueue>
 #include <QVector>
 
-#include <TimeDebugger.h>
+#include <YT_TimeDebugger.h>
 
 int KMP_String(const QString &data, const QString &pattern);
 

@@ -8,7 +8,6 @@ MusicWidget::MusicWidget(QQuickItem* parent)
 {
     this->setFlag(QQuickItem::ItemHasContents, true);
 
-    // curListInfoID = Music_DataBase::getObject().getListInfo_NameALL().at(0);
     curListInfoID = listModel.infoIds.first();
     fileModel.setInfoIds(curListInfoID);
     pathModel.initData(curListInfoID);
@@ -156,21 +155,10 @@ void MusicWidget::addPlayMusic_Path(const QList<QString>& path_list)
     addPlayMusic(info_ids);
 }
 
-Q_INVOKABLE QString MusicWidget::getMusicInfo_CoverPath(int info_id)
-{
-    const auto data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_FilePath).toString();
-    return getMusicInfo_CoverPath(data);
-    // const auto data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_CoverHashValue).toString();
-}
-
-Q_INVOKABLE QString MusicWidget::getMusicInfo_CoverPath(QString info_path)
-{
-    const auto data = MusicDatabase::obj().getFileInfo_CoverHashValue(info_path);
-    return "image://MusicImage/" + (data.isEmpty() ? info_path : data);
-}
-
 Q_INVOKABLE int MusicWidget::updateMusicInfo(int info_id)
 {
+    /////////////////////////////////////////////////////////////////////////////////////////
+    return -1;
     if (MusicDatabase::obj().getFileInfo(info_id, DB_FileInfo::I_IsValid).toBool() == false) {
         qDebug() << "MusicWidget::updateMusicInfo info_id: " << info_id << " is not valid";
         return -1;

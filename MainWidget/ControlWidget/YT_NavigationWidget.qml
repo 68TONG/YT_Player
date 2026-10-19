@@ -80,29 +80,10 @@ Item {
             spacing: 7
             interactive: false
             model: root.model
-
-            add: Transition {
-                NumberAnimation {
-                    properties: "opacity"
-                    duration: 300
-                    from: 0.0
-                    to: 1.0
-                    easing.type: Easing.InOutQuad
-                }
-            }
-            remove: Transition {
-                NumberAnimation {
-                    properties: "opacity"
-                    duration: 300
-                    from: 1.0
-                    to: 0.0
-                    easing.type: Easing.InOutQuad
-                }
-            }
         }
 
         background: Rectangle {
-            color: YT_M.Theme.SurfaceContainerHighest
+            color: YT_M.Theme.Surface
             radius: root.setPopup && root.expanded ? YT_M.Theme.RadiusLarge : YT_M.Theme.RadiusMedium
             topLeftRadius: 0
             topRightRadius: radius
@@ -161,7 +142,7 @@ Item {
         delegate: M_ViewItem {
             readonly property variant model: YT.widgetInfos.get(index)
             m.text: model.title
-            m.iconSource: model.logoPath
+            m.iconSource: model.logoIconPath
             m.onClicked: {
                 if (ListView.view.currentIndex == index) {
                     ListView.view.closeVertical = !(ListView.view as M_View).closeVertical;
@@ -179,6 +160,14 @@ Item {
         implicitWidth: contentWidth
         implicitHeight: contentHeight
         interactive: false
+
+        visible: opacity != 0.0
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutQuad
+            }
+        }
 
         readonly property YT_FollowBackground followBackground: YT_FollowBackground {
             parent: root_M_View.contentItem
@@ -266,56 +255,49 @@ Item {
         m.implicitWidth: m.implicitContentWidth + m.leftPadding + m.rightPadding
         m.implicitHeight: 32
 
+        m.checked: (ListView.view as M_View).followBackground.followItem == this
         m.radius: YT_M.Theme.RadiusSmall
         m.spacing: YT_M.Theme.Space50
         m.verticalPadding: YT_M.Theme.Space75
         m.horizontalPadding: YT_M.Theme.Space75
 
-        m.indicator: Item {
+        m.iconFill: m.pressed || m.isCurrentItem
+        m.iconColor: m.checked ? YT_M.Theme.OnSecondaryContainer : YT_M.Theme.OnSurfaceVariant
+        m.labelColor: m.checked ? YT_M.Theme.OnSecondaryContainer : YT_M.Theme.OnSurfaceVariant
+
+        m.indicator: YT_M.Icon {
+            enabled: false
             anchors.left: parent.left
             anchors.leftMargin: root_M_ViewItem.m.leftPadding
             anchors.verticalCenter: parent.verticalCenter
-            implicitWidth: root_M_ViewItem.m.iconSize
-            implicitHeight: root_M_ViewItem.m.iconSize
-            readonly property bool isImageOrText: root_M_ViewItem.m.iconSource != null && root_M_ViewItem.m.iconSource != ""
-            Image {
-                visible: parent.isImageOrText == true
-                anchors.fill: parent
-                source: visible ? root_M_ViewItem.m.iconSource : ""
-                fillMode: Image.PreserveAspectFit
-            }
-            Text {
-                visible: parent.isImageOrText == false
-                anchors.fill: parent
-                font.bold: true
-                font.pointSize: 11
-                text: root_M_ViewItem.m.text.charAt(0)
-                color: root_M_ViewItem.m.labelColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
+
+            fontFill: root_M_ViewItem.m.iconFill
+            iconSize: root_M_ViewItem.m.iconSize
+            iconColor: root_M_ViewItem.m.iconColor
+            iconSource: root_M_ViewItem.m.iconSource
         }
         m.contentItem: Text {
-            visible: (root_M_ViewItem.ListView.view as M_View).closeHorizontal == false
+            visible: opacity != 0.0
+            opacity: (root_M_ViewItem.ListView.view as M_View).closeHorizontal == false
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutQuad
+                }
+            }
+
             text: root_M_ViewItem.m.text
             font: root_M_ViewItem.m.font
             color: root_M_ViewItem.m.labelColor
-            leftPadding: root_M_ViewItem.m.indicator.width + root_M_ViewItem.m.spacing
+            leftPadding: root_M_ViewItem.m.indicator && root_M_ViewItem.m.indicator.width > 0 ? root_M_ViewItem.m.indicator.width + root_M_ViewItem.m.spacing : 0
             horizontalAlignment: Text.AlignLeft
             verticalAlignment: Text.AlignVCenter
         }
-        m.background: YT_M.ControlBackground {
-            radius: root_M_ViewItem.m.radius
-            background.color: root_M_ViewItem.m.containerColor
-            background.visible: background.opacity != 0.0
-            background.opacity: root_M_ViewItem.m.draging
-
-            defaultLayer.visible: false
-            diffusionLayerColor: root_M_ViewItem.m.containerLayerColor
-            diffusionLayerPoint: mapFromItem(root_M_ViewItem, root_M_ViewItem.m.pressX, root_M_ViewItem.m.pressY)
-            diffusionLayerVisible: root_M_ViewItem.m.pressed
-            elevation: root_M_ViewItem.m.elevation
+        m.background: YT_M.Background {
+            initProperty: root_M_ViewItem.m
+            background.visible: root_M_ViewItem.m.draging
         }
+
         m.onHoveredChanged: {
             if (m.hovered) {
                 ListView.view.hoveredItem = this;

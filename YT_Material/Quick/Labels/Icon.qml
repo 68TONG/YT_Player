@@ -31,6 +31,7 @@ T.Control {
             color: root.iconColor
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
+            renderType: Text.NativeRendering // 关键：切换为原生渲染
             font.variableAxes: {
                 "FILL": root.fontFill,
                 "wght": root.fontWght,

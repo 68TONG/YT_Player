@@ -14,12 +14,6 @@ FileWidget::FileWidget(QQuickItem* parent)
         };;
 }
 
-Q_INVOKABLE QString FileWidget::getFileInfo_CoverPath(QString info_path)
-{
-    const auto data = DB_DatabaseInstance::obj().getFileInfo_CoverHashValue(info_path);
-    return "image://FileImage/" + (data.isEmpty() ? info_path : data);
-}
-
 void FileWidget::create(const QString& path)
 {
     const QString name = "新建文件"; // 基础文件名

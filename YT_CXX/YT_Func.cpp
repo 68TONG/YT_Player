@@ -4,6 +4,22 @@
 #include "DB_DatabaseInstance.h"
 #include "QImageReader"
 
+#include <QCoreApplication>
+#include <QDir>
+#include <QDebug>
+#include <QFile>
+#include <QFileInfo>
+#include <QPainter>
+#include <QRect>
+
+#include <opencv2/dnn.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+
+#include <algorithm>
+#include <cmath>
+#include <mutex>
+
 YT_Func::YT_Func(QObject* parent)
     : QObject{ parent }
 {
@@ -121,13 +137,13 @@ QString YT_Func::getTH_Character(const QString& data)
 
 chinese_util::Dict* YT_Func::getChinese_Dict()
 {
-    if (Chinese_Dict == nullptr)
-    {
-        Chinese_Dict = new chinese_util::Dict();
-        Chinese_Dict->LoadPinyinData("./YT_PlayerData/chinese_util/pinyinData.json");
-        Chinese_Dict->LoadCharacterData("./YT_PlayerData/chinese_util/charsData.json");
-    }
-    return Chinese_Dict;
+    static chinese_util::Dict* const chineseDict = []() {
+        auto dict = new chinese_util::Dict();
+        dict->LoadPinyinData("./YT_PlayerData/chinese_util/pinyinData.json");
+        dict->LoadCharacterData("./YT_PlayerData/chinese_util/charsData.json");
+        return dict;
+        }();
+    return chineseDict;
 }
 
 QString YT_Func::getChinesePinYin(const QString& data)
@@ -841,10 +857,14 @@ int YT_Func::MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QByteArray& d
 
 QString YT_Func::outputFileCover(QString file_path)
 {
-    // return {};
     const QFileInfo file_info(file_path);
     if (file_info.isFile() == false)
         return {};
+
+    if (QDir().mkpath("./YT_PlayerCache") == false) {
+        qWarning() << "YT_Func::outputFileCover could not create cover cache directory";
+        return {};
+    }
 
     QString target_path = file_path;
     const bool isQtSupported = QImageReader::supportedImageFormats().contains(file_info.suffix());
@@ -852,8 +872,6 @@ QString YT_Func::outputFileCover(QString file_path)
     {
         VideoBuffer media_buffer(target_path.toUtf8(), true);
         if (media_buffer.isValid() == false) {
-            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_buffer isValid is false";
-            // qDebug() << qDebug_str;
             return {};
         }
 
@@ -874,22 +892,16 @@ QString YT_Func::outputFileCover(QString file_path)
         MediaEncoder media_encoder;
         int sic = media_encoder.setMediaPath(target_path.toUtf8());
         if (sic < 0) {
-            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_encoder setMediaPath error";
-            // qDebug() << qDebug_str;
             return {};
         }
 
         sic = media_encoder.addStream(&media_buffer);
         if (sic < 0) {
-            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_encoder addStream error";
-            // qDebug() << qDebug_str;
             return {};
         }
 
         sic = media_encoder.encodeRun();
         if (sic < 0) {
-            // const QString qDebug_str = QString::number(info_id) + info_path + " MusicImageModel::outputCoverCache media_encoder encodeRun error";
-            // qDebug() << qDebug_str;
             return {};
         }
         media_encoder.release();
@@ -903,16 +915,609 @@ QString YT_Func::outputFileCover(QString file_path)
     const QString file_hash = QCryptographicHash::hash(file.readAll(), QCryptographicHash::Md5).toHex();
     const QString file_cover_path = "./YT_PlayerCache/" + file_hash + '.' + QFileInfo(target_path).suffix();
 
-    QImage q_image(target_path);
-    if (q_image.isNull() == false && q_image.scaledToWidth(300, Qt::SmoothTransformation).save(file_cover_path) == true) {
-        const auto db_thread = DB_DatabaseInstance::obj().db.thread();
-        QMetaObject::invokeMethod(db_thread, [file_path, file_hash] {
-            DB_DatabaseInstance::obj().setFileInfo_CoverHashValue(file_path, file_hash);
-            }, Qt::QueuedConnection);
+    QImage q_image = QImage(target_path).scaledToWidth(300, Qt::SmoothTransformation);
+    if (q_image.isNull() || q_image.save(file_cover_path) == false) {
+        return {};
     }
     if (isQtSupported == false) {
         file.remove();
     }
 
+    const auto image_focus = getFileCoverVisualFocus(q_image);
+    const auto db_thread = DB_DatabaseInstance::obj().db.thread();
+    QMetaObject::invokeMethod(db_thread, [file_path, file_hash, image_focus] {
+        DB_DatabaseInstance::obj().setFileCoverInfo_HashValue(file_path, file_hash);
+        DB_DatabaseInstance::obj().setFileCoverInfo_VisualFocus(file_path, image_focus);
+        }, Qt::QueuedConnection);
     return file_hash;
 }
+
+Q_INVOKABLE QString YT_Func::getFileCoverPath(QString file_path)
+{
+    const auto data = DB_DatabaseInstance::obj().getFileCoverInfo_HashValue(file_path);
+    return "image://CoverCache/" + (data.isEmpty() ? file_path : data);
+}
+
+Q_INVOKABLE QString YT_Func::getFileCoverPath_InfoId(int info_id)
+{
+    auto file_path = DB_DatabaseInstance::obj().getFileInfo(info_id, DB_FileInfo::I_FilePath).toString();
+    if (file_path.isEmpty()) return {};
+    return getFileCoverPath(file_path);
+}
+
+QPointF YT_Func::getFileCoverVisualFocus(const QImage& source_image)
+{
+    if (source_image.isNull()) {
+        qWarning() << "YT_Func::getFileCoverVisualFocus received an empty source image";
+        return QPointF(0.5, 0.5);
+    }
+
+    const auto q_image = source_image.convertToFormat(QImage::Format_BGR888);
+    const cv::Mat mat_image(
+        q_image.height(),
+        q_image.width(),
+        CV_8UC3,
+        const_cast<uchar*>(q_image.constBits()),
+        static_cast<size_t>(q_image.bytesPerLine()));
+
+    QPointF visual_focus(0.5, 0.5);
+    static std::once_flag model_initialization_flag;
+    static cv::dnn::Net face_detection_model;
+    std::call_once(model_initialization_flag, [] {
+        const QString model_path = QDir(QCoreApplication::applicationDirPath())
+            .filePath("YT_PlayerData/Models/AnimeFace/model.onnx");
+        try {
+            face_detection_model = cv::dnn::readNet(model_path.toStdString());
+            if (face_detection_model.empty()) {
+                qWarning().noquote() << "YT_Func::getFileCoverVisualFocus loaded an empty anime-face model:"
+                    << model_path;
+                return;
+            }
+            face_detection_model.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+        }
+        catch (const cv::Exception& error) {
+            qWarning().noquote() << "YT_Func::getFileCoverVisualFocus failed to load anime-face model:"
+                << model_path << QString::fromLocal8Bit(error.what());
+        }
+        });
+    if (face_detection_model.empty()) {
+        return visual_focus;
+    }
+
+    try {
+        constexpr int model_input_size = 640;
+        constexpr float face_score_threshold = 0.618f;
+        constexpr float nms_threshold = 0.45f;
+
+        const float resize_scale = std::min(
+            static_cast<float>(model_input_size) / mat_image.cols,
+            static_cast<float>(model_input_size) / mat_image.rows);
+        const int resized_width = std::max(1, static_cast<int>(std::round(mat_image.cols * resize_scale)));
+        const int resized_height = std::max(1, static_cast<int>(std::round(mat_image.rows * resize_scale)));
+        const int padding_x = (model_input_size - resized_width) / 2;
+        const int padding_y = (model_input_size - resized_height) / 2;
+
+        cv::Mat resized_image;
+        cv::resize(mat_image, resized_image, cv::Size(resized_width, resized_height));
+        cv::Mat letterboxed_image(
+            model_input_size,
+            model_input_size,
+            CV_8UC3,
+            cv::Scalar(114, 114, 114));
+        resized_image.copyTo(letterboxed_image(cv::Rect(
+            padding_x,
+            padding_y,
+            resized_width,
+            resized_height)));
+
+        const cv::Mat input_blob = cv::dnn::blobFromImage(
+            letterboxed_image,
+            1.0 / 255.0,
+            cv::Size(model_input_size, model_input_size),
+            cv::Scalar(),
+            true,
+            false,
+            CV_32F);
+
+        static std::mutex inference_mutex;
+        std::vector<cv::Mat> outputs;
+        {
+            const std::lock_guard<std::mutex> lock(inference_mutex);
+            face_detection_model.setInput(input_blob);
+            face_detection_model.forward(outputs, face_detection_model.getUnconnectedOutLayersNames());
+        }
+
+        if (outputs.empty()) {
+            qWarning() << "YT_Func::getFileCoverVisualFocus received no output from the anime-face model";
+            return visual_focus;
+        }
+
+        const cv::Mat& output = outputs.front();
+        bool channels_first = false;
+        int attributes = 0;
+        int candidate_count = 0;
+
+        if (output.dims == 3 && output.size[0] == 1) {
+            if (output.size[1] == 5 && output.size[2] > 5) {
+                channels_first = true;
+                attributes = output.size[1];
+                candidate_count = output.size[2];
+            }
+            else if (output.size[2] == 5 && output.size[1] > 5) {
+                attributes = output.size[2];
+                candidate_count = output.size[1];
+            }
+        }
+        else if (output.dims == 2) {
+            if (output.size[0] == 5 && output.size[1] > 5) {
+                channels_first = true;
+                attributes = output.size[0];
+                candidate_count = output.size[1];
+            }
+            else if (output.size[1] == 5 && output.size[0] > 5) {
+                attributes = output.size[1];
+                candidate_count = output.size[0];
+            }
+        }
+        if (attributes != 5 || candidate_count == 0 || output.type() != CV_32F) {
+            qWarning() << "YT_Func::getFileCoverVisualFocus received an unsupported anime-face model output shape";
+            return visual_focus;
+        }
+
+        const float* output_values = output.ptr<float>();
+        const auto output_value = [=](int candidate, int attribute) {
+            return channels_first
+                ? output_values[attribute * candidate_count + candidate]
+                : output_values[candidate * attributes + attribute];
+            };
+
+        std::vector<cv::Rect> face_boxes;
+        std::vector<float> face_scores;
+        for (int candidate = 0; candidate < candidate_count; ++candidate) {
+            const float score = output_value(candidate, 4);
+            if (std::isfinite(score) == false || score < face_score_threshold)
+                continue;
+
+            const float center_x = output_value(candidate, 0);
+            const float center_y = output_value(candidate, 1);
+            const float box_width = output_value(candidate, 2);
+            const float box_height = output_value(candidate, 3);
+            if (std::isfinite(center_x) == false || std::isfinite(center_y) == false
+                || std::isfinite(box_width) == false || std::isfinite(box_height) == false
+                || box_width <= 0 || box_height <= 0) {
+                continue;
+            }
+
+            const int left = std::clamp(
+                static_cast<int>(std::floor((center_x - box_width / 2.0f - padding_x) / resize_scale)),
+                0,
+                mat_image.cols);
+            const int top = std::clamp(
+                static_cast<int>(std::floor((center_y - box_height / 2.0f - padding_y) / resize_scale)),
+                0,
+                mat_image.rows);
+            const int right = std::clamp(
+                static_cast<int>(std::ceil((center_x + box_width / 2.0f - padding_x) / resize_scale)),
+                0,
+                mat_image.cols);
+            const int bottom = std::clamp(
+                static_cast<int>(std::ceil((center_y + box_height / 2.0f - padding_y) / resize_scale)),
+                0,
+                mat_image.rows);
+            if (right <= left || bottom <= top)
+                continue;
+
+            face_boxes.emplace_back(left, top, right - left, bottom - top);
+            face_scores.push_back(score);
+        }
+
+        std::vector<int> retained_faces;
+        cv::dnn::NMSBoxes(
+            face_boxes,
+            face_scores,
+            face_score_threshold,
+            nms_threshold,
+            retained_faces);
+        if (retained_faces.empty() && face_boxes.empty() == false) {
+            qWarning() << "YT_Func::getFileCoverVisualFocus could not retain any anime-face detections";
+            return visual_focus;
+        }
+        if (retained_faces.empty())
+            return visual_focus;
+
+        int highest_scoring_face = retained_faces.front();
+        for (const int face_index : retained_faces) {
+            if (face_scores[face_index] > face_scores[highest_scoring_face])
+                highest_scoring_face = face_index;
+        }
+        const cv::Rect& face = face_boxes[highest_scoring_face];
+        visual_focus = QPointF(
+            std::clamp((face.x + face.width * 0.5) / mat_image.cols, 0.0, 1.0),
+            std::clamp((face.y + face.height * 0.5) / mat_image.rows, 0.0, 1.0));
+    }
+    catch (const cv::Exception& error) {
+        qWarning().noquote() << "YT_Func::getFileCoverVisualFocus failed during anime-face detection:"
+            << QString::fromLocal8Bit(error.what());
+    }
+    return visual_focus;
+}
+
+Q_INVOKABLE QPointF YT_Func::getFileCoverVisualFocus(const QString& file_path)
+{
+    return DB_DatabaseInstance::obj().getFileCoverInfo_VisualFocus(file_path);
+}
+
+QRect YT_Func::getFileCoverVisualRect(double aspect_ratio, const QSize& image_size, const QPointF& focus)
+{
+    if (aspect_ratio <= 0 || std::isfinite(aspect_ratio) == false
+        || image_size.width() <= 0 || image_size.height() <= 0) {
+        return {};
+    }
+
+    const double crop_width = std::min(static_cast<double>(image_size.width()), image_size.height() * aspect_ratio);
+    const double crop_height = crop_width / aspect_ratio;
+    const int width = std::clamp(qRound(crop_width), 1, image_size.width());
+    const int height = std::clamp(qRound(crop_height), 1, image_size.height());
+    const int focus_x = std::clamp(static_cast<int>(std::floor(image_size.width() * focus.x())), 0, image_size.width() - 1);
+    const int focus_y = std::clamp(static_cast<int>(std::floor(image_size.height() * focus.y())), 0, image_size.height() - 1);
+    const int left = std::clamp(focus_x - width / 2, 0, image_size.width() - width);
+    const int top = std::clamp(focus_y - height / 2, 0, image_size.height() - height);
+    return QRect(left, top, width, height);
+}
+
+QImage YT_Func::outputFileCoverVisualRect(const QImage& source_image, const QRect& crop_rect, QString path_name)
+{
+    if (source_image.isNull()) {
+        qWarning() << "YT_Func::outputFileCoverVisualRect received an empty source image";
+        return {};
+    }
+
+    const QRect image_rect(QPoint(0, 0), source_image.size());
+    const QRect bounded_crop_rect = crop_rect.intersected(image_rect);
+    if (crop_rect.isValid() == false || bounded_crop_rect.isValid() == false) {
+        qWarning() << "YT_Func::outputFileCoverVisualRect received an invalid crop rectangle";
+        return {};
+    }
+
+    QImage debug_image = source_image.convertToFormat(QImage::Format_ARGB32);
+    {
+        QPainter painter(&debug_image);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setBrush(Qt::NoBrush);
+        const int frame_width = std::max(2, qRound(std::min(source_image.width(), source_image.height()) / 300.0));
+        painter.setPen(QPen(Qt::green, frame_width));
+        painter.drawRect(bounded_crop_rect);
+
+        const int focus_radius = std::max(3, std::min(source_image.width(), source_image.height()) / 100);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(Qt::red);
+        painter.drawEllipse(QPointF(crop_rect.center()), focus_radius, focus_radius);
+    }
+
+    const QString debug_directory = QDir::current().filePath("YT_PlayerCache");
+    if (QDir().mkpath(debug_directory) == false) {
+        qWarning().noquote() << "YT_Func::outputFileCoverVisualRect could not create debug directory:"
+            << debug_directory;
+        return {};
+    }
+
+    const QString debug_path = QDir(debug_directory).filePath(path_name + ".png");
+    if (debug_image.save(debug_path, "PNG") == false) {
+        qWarning().noquote() << "YT_Func::outputFileCoverVisualRect could not save debug image:"
+            << debug_path;
+        return {};
+    }
+    qInfo().noquote() << "YT_Func::outputFileCoverVisualRect wrote debug image:" << debug_path;
+    return debug_image;
+}
+
+// QPoint YT_Func::outputFileCoverVisualFocus(QString file_path)
+// {
+//     QImageReader image_reader(file_path);
+//     image_reader.setAutoTransform(true);
+//     const QImage image = image_reader.read();
+//     if (image.isNull()) {
+//         qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus failed to read cover image:"
+//             << file_path << image_reader.errorString();
+//         return {};
+//     }
+
+//     const QImage rgb_image = image.convertToFormat(QImage::Format_RGB888);
+//     const cv::Mat rgb_image_mat(
+//         rgb_image.height(),
+//         rgb_image.width(),
+//         CV_8UC3,
+//         const_cast<uchar*>(rgb_image.constBits()),
+//         static_cast<size_t>(rgb_image.bytesPerLine()));
+//     cv::Mat source_image;
+//     cv::cvtColor(rgb_image_mat, source_image, cv::COLOR_RGB2BGR);
+
+//     const QSize source_size(source_image.cols, source_image.rows);
+//     const QPoint image_center(source_size.width() / 2, source_size.height() / 2);
+//     QPoint visual_focus = image_center;
+
+//     static std::once_flag model_initialization_flag;
+//     static cv::dnn::Net face_detection_model;
+//     std::call_once(model_initialization_flag, [] {
+//         const QString model_path = QDir(QCoreApplication::applicationDirPath())
+//             .filePath("YT_PlayerData/Models/AnimeFace/model.onnx");
+//         QFile model_file(model_path);
+//         if (model_file.open(QIODevice::ReadOnly) == false) {
+//             qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus failed to open anime-face model:"
+//                 << model_path << model_file.errorString();
+//             return;
+//         }
+
+//         const QByteArray model_data = model_file.readAll();
+//         if (model_data.isEmpty() || model_file.error() != QFileDevice::NoError) {
+//             qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus failed to read anime-face model:"
+//                 << model_path << model_file.errorString();
+//             return;
+//         }
+
+//         try {
+//             face_detection_model = cv::dnn::readNetFromONNX(
+//                 model_data.constData(),
+//                 static_cast<size_t>(model_data.size()));
+//             if (face_detection_model.empty()) {
+//                 qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus loaded an empty anime-face model:"
+//                     << model_path;
+//                 return;
+//             }
+//             face_detection_model.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
+//         }
+//         catch (const cv::Exception& error) {
+//             qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus failed to load anime-face model:"
+//                 << model_path << QString::fromLocal8Bit(error.what());
+//         }
+//         });
+//     if (face_detection_model.empty()) {
+//         return visual_focus;
+//     }
+
+//     try {
+//         constexpr int model_input_size = 640;
+//         constexpr float face_score_threshold = 0.278f;
+//         constexpr float nms_threshold = 0.45f;
+
+//         const float resize_scale = std::min(
+//             static_cast<float>(model_input_size) / source_image.cols,
+//             static_cast<float>(model_input_size) / source_image.rows);
+//         const int resized_width = std::max(1, static_cast<int>(std::round(source_image.cols * resize_scale)));
+//         const int resized_height = std::max(1, static_cast<int>(std::round(source_image.rows * resize_scale)));
+//         const int padding_x = (model_input_size - resized_width) / 2;
+//         const int padding_y = (model_input_size - resized_height) / 2;
+
+//         cv::Mat resized_image;
+//         cv::resize(source_image, resized_image, cv::Size(resized_width, resized_height));
+//         cv::Mat letterboxed_image(
+//             model_input_size,
+//             model_input_size,
+//             CV_8UC3,
+//             cv::Scalar(114, 114, 114));
+//         resized_image.copyTo(letterboxed_image(cv::Rect(
+//             padding_x,
+//             padding_y,
+//             resized_width,
+//             resized_height)));
+
+//         const cv::Mat input_blob = cv::dnn::blobFromImage(
+//             letterboxed_image,
+//             1.0 / 255.0,
+//             cv::Size(model_input_size, model_input_size),
+//             cv::Scalar(),
+//             true,
+//             false,
+//             CV_32F);
+
+//         static std::mutex inference_mutex;
+//         std::vector<cv::Mat> outputs;
+//         {
+//             const std::lock_guard<std::mutex> lock(inference_mutex);
+//             face_detection_model.setInput(input_blob);
+//             face_detection_model.forward(outputs, face_detection_model.getUnconnectedOutLayersNames());
+//         }
+
+//         if (outputs.empty()) {
+//             qWarning() << "YT_Func::outputFileCoverVisualFocus received no output from the anime-face model";
+//             return visual_focus;
+//         }
+
+//         const cv::Mat& output = outputs.front();
+//         bool channels_first = false;
+//         int attributes = 0;
+//         int candidate_count = 0;
+
+//         if (output.dims == 3 && output.size[0] == 1) {
+//             if (output.size[1] == 5 && output.size[2] > 5) {
+//                 channels_first = true;
+//                 attributes = output.size[1];
+//                 candidate_count = output.size[2];
+//             }
+//             else if (output.size[2] == 5 && output.size[1] > 5) {
+//                 attributes = output.size[2];
+//                 candidate_count = output.size[1];
+//             }
+//         }
+//         else if (output.dims == 2) {
+//             if (output.size[0] == 5 && output.size[1] > 5) {
+//                 channels_first = true;
+//                 attributes = output.size[0];
+//                 candidate_count = output.size[1];
+//             }
+//             else if (output.size[1] == 5 && output.size[0] > 5) {
+//                 attributes = output.size[1];
+//                 candidate_count = output.size[0];
+//             }
+//         }
+
+//         if (attributes != 5 || candidate_count == 0 || output.type() != CV_32F) {
+//             qWarning() << "YT_Func::outputFileCoverVisualFocus received an unsupported anime-face model output shape";
+//             return visual_focus;
+//         }
+
+//         const float* output_values = output.ptr<float>();
+//         const auto output_value = [=](int candidate, int attribute) {
+//             return channels_first
+//                 ? output_values[attribute * candidate_count + candidate]
+//                 : output_values[candidate * attributes + attribute];
+//             };
+
+//         std::vector<cv::Rect> face_boxes;
+//         std::vector<float> face_scores;
+//         for (int candidate = 0; candidate < candidate_count; ++candidate) {
+//             const float score = output_value(candidate, 4);
+//             if (std::isfinite(score) == false || score < face_score_threshold)
+//                 continue;
+
+//             const float center_x = output_value(candidate, 0);
+//             const float center_y = output_value(candidate, 1);
+//             const float box_width = output_value(candidate, 2);
+//             const float box_height = output_value(candidate, 3);
+//             if (std::isfinite(center_x) == false || std::isfinite(center_y) == false
+//                 || std::isfinite(box_width) == false || std::isfinite(box_height) == false
+//                 || box_width <= 0 || box_height <= 0) {
+//                 continue;
+//             }
+
+//             const int left = std::clamp(
+//                 static_cast<int>(std::floor((center_x - box_width / 2.0f - padding_x) / resize_scale)),
+//                 0,
+//                 source_image.cols);
+//             const int top = std::clamp(
+//                 static_cast<int>(std::floor((center_y - box_height / 2.0f - padding_y) / resize_scale)),
+//                 0,
+//                 source_image.rows);
+//             const int right = std::clamp(
+//                 static_cast<int>(std::ceil((center_x + box_width / 2.0f - padding_x) / resize_scale)),
+//                 0,
+//                 source_image.cols);
+//             const int bottom = std::clamp(
+//                 static_cast<int>(std::ceil((center_y + box_height / 2.0f - padding_y) / resize_scale)),
+//                 0,
+//                 source_image.rows);
+//             if (right <= left || bottom <= top)
+//                 continue;
+
+//             face_boxes.emplace_back(left, top, right - left, bottom - top);
+//             face_scores.push_back(score);
+//         }
+
+//         std::vector<int> retained_faces;
+//         cv::dnn::NMSBoxes(
+//             face_boxes,
+//             face_scores,
+//             face_score_threshold,
+//             nms_threshold,
+//             retained_faces);
+//         if (retained_faces.empty() && face_boxes.empty() == false) {
+//             qWarning() << "YT_Func::outputFileCoverVisualFocus could not retain any anime-face detections";
+//             return visual_focus;
+//         }
+
+//         double center_x_sum = 0;
+//         double center_y_sum = 0;
+//         for (const int face_index : retained_faces) {
+//             const cv::Rect& face = face_boxes[face_index];
+//             center_x_sum += face.x + face.width / 2.0;
+//             center_y_sum += face.y + face.height / 2.0;
+//         }
+//         visual_focus = QPoint(
+//             std::clamp(
+//                 qRound(center_x_sum / retained_faces.size()),
+//                 0,
+//                 source_image.cols - 1),
+//             std::clamp(
+//                 qRound(center_y_sum / retained_faces.size()),
+//                 0,
+//                 source_image.rows - 1));
+//     }
+//     catch (const cv::Exception& error) {
+//         qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus failed during anime-face detection:"
+//             << QString::fromLocal8Bit(error.what());
+//     }
+
+//     if (true) {
+//         const auto calculateCropRect = [](double aspect_ratio, const QSize& image_size, const QPoint& focus) -> QRect {
+//             if (aspect_ratio <= 0 || std::isfinite(aspect_ratio) == false
+//                 || image_size.width() <= 0 || image_size.height() <= 0) {
+//                 return {};
+//             }
+
+//             const double crop_width = std::min(
+//                 static_cast<double>(image_size.width()),
+//                 image_size.height() * aspect_ratio);
+//             const double crop_height = crop_width / aspect_ratio;
+//             const int width = std::clamp(qRound(crop_width), 1, image_size.width());
+//             const int height = std::clamp(qRound(crop_height), 1, image_size.height());
+//             const int focus_x = std::clamp(focus.x(), 0, image_size.width() - 1);
+//             const int focus_y = std::clamp(focus.y(), 0, image_size.height() - 1);
+//             const int left = std::clamp(focus_x - width / 2, 0, image_size.width() - width);
+//             const int top = std::clamp(focus_y - height / 2, 0, image_size.height() - height);
+//             return QRect(left, top, width, height);
+//             };
+
+//         const auto writeDebugImage = [&](const cv::Mat& source, const QRect& crop_rect, const QPoint& focus) {
+//             cv::Mat debug_image = source.clone();
+//             cv::rectangle(
+//                 debug_image,
+//                 cv::Rect(crop_rect.x(), crop_rect.y(), crop_rect.width(), crop_rect.height()),
+//                 cv::Scalar(0, 255, 0),
+//                 2,
+//                 cv::LINE_AA);
+//             cv::circle(
+//                 debug_image,
+//                 cv::Point(focus.x(), focus.y()),
+//                 std::max(3, std::min(source.cols, source.rows) / 100),
+//                 cv::Scalar(0, 0, 255),
+//                 cv::FILLED,
+//                 cv::LINE_AA);
+
+//             std::vector<uchar> encoded_image;
+//             try {
+//                 if (cv::imencode(".png", debug_image, encoded_image) == false) {
+//                     qWarning() << "YT_Func::outputFileCoverVisualFocus could not encode the debug image";
+//                     return;
+//                 }
+//             }
+//             catch (const cv::Exception& error) {
+//                 qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus could not encode the debug image:"
+//                     << QString::fromLocal8Bit(error.what());
+//                 return;
+//             }
+
+//             const QString debug_directory = QDir::current().filePath("YT_PlayerCache");
+//             if (QDir().mkpath(debug_directory) == false) {
+//                 qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus could not create debug directory:"
+//                     << debug_directory;
+//                 return;
+//             }
+//             const QString base_name = QFileInfo(file_path).completeBaseName();
+//             const QString debug_path = QDir(debug_directory).filePath(
+//                 (base_name.isEmpty() ? QStringLiteral("cover") : base_name) + QStringLiteral("_visual_focus.png"));
+//             QFile debug_file(debug_path);
+//             if (debug_file.open(QIODevice::WriteOnly) == false) {
+//                 qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus could not open debug image:"
+//                     << debug_path << debug_file.errorString();
+//                 return;
+//             }
+//             const qint64 bytes_written = debug_file.write(
+//                 reinterpret_cast<const char*>(encoded_image.data()),
+//                 static_cast<qint64>(encoded_image.size()));
+//             if (bytes_written != static_cast<qint64>(encoded_image.size())) {
+//                 qWarning().noquote() << "YT_Func::outputFileCoverVisualFocus could not write debug image:"
+//                     << debug_path << debug_file.errorString();
+//                 return;
+//             }
+//             qInfo().noquote() << "YT_Func::outputFileCoverVisualFocus wrote debug image:" << debug_path;
+//             };
+
+//         const QRect crop_rect = calculateCropRect(16.0 / 9.0, source_size, visual_focus);
+//         if (crop_rect.isValid())
+//             writeDebugImage(source_image, crop_rect, visual_focus);
+//         else
+//             qWarning() << "YT_Func::outputFileCoverVisualFocus could not calculate the debug crop rectangle";
+//     }
+
+//     return visual_focus;
+// }

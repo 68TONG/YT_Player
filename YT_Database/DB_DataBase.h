@@ -2,17 +2,39 @@
 
 #include <DB_Info.h>
 #include <YT_Func.h>
+#include <QCoreApplication>
+#include <QThread>
 
 template <typename FileInfo_T, typename ListInfo_T>
 class DB_Database
 {
     static_assert(std::is_base_of<DB_FileInfo, FileInfo_T>::value, "FileInfo_T must inherit from Base");
     static_assert(std::is_base_of<DB_ListInfo, ListInfo_T>::value, "ListInfo_T must inherit from Base");
+    static QString connectionNameForThread(QThread* thread)
+    {
+        Q_ASSERT_X(thread != nullptr, "DB_Database", "A thread is required for a thread-specific database connection");
+        Q_ASSERT_X(thread == QThread::currentThread(), "DB_Database",
+            "The database connection must be created in the target thread");
+        return QStringLiteral("YT_Database_%1").arg(
+            reinterpret_cast<quintptr>(QThread::currentThreadId()), 0, 16);
+    }
+    bool removeConnectionOnDestruction = false;
 protected:
     DB_Database()
+        : DB_Database(QStringLiteral("YT_Database"))
     {
-        if (QSqlDatabase::contains() == false) {
-            auto db = QSqlDatabase::addDatabase("QSQLITE");
+    }
+
+    explicit DB_Database(QThread* thread)
+        : DB_Database(connectionNameForThread(thread), true)
+    {
+    }
+
+    explicit DB_Database(const QString& connectionName, bool removeConnectionOnDestruction = false)
+        : removeConnectionOnDestruction(removeConnectionOnDestruction)
+    {
+        if (QSqlDatabase::contains(connectionName) == false) {
+            auto db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
             if (QFile::exists("C:/TONG/Code/YT_Player/YT_Database/YT_Database.db")) {
                 db.setDatabaseName("C:/TONG/Code/YT_Player/YT_Database/YT_Database.db");
             }
@@ -33,20 +55,33 @@ protected:
                 qWarning() << "警告：外键约束未能启用";
             }
         }
-        db = QSqlDatabase::database();
+        db = QSqlDatabase::database(connectionName);
     }
-    ~DB_Database() {}
+    virtual ~DB_Database()
+    {
+        if (removeConnectionOnDestruction == false
+            || QCoreApplication::instance() == nullptr
+            || db.isValid() == false) {
+            return;
+        }
+
+        const QString connectionName = db.connectionName();
+        qDebug() << "connectionName " << db.connectionName();
+        db.close();
+        db = QSqlDatabase();
+        QSqlDatabase::removeDatabase(connectionName);
+    }
 
     class TempIdsTable
     {
     public:
-        TempIdsTable(const QList<int>& ids = {}, QString tableName = "tempIdsTable")
-            :tableName(tableName)
+        TempIdsTable(QSqlDatabase database, const QList<int>& ids = {}, QString tableName = "tempIdsTable")
+            :database(database), query(database), tableName(tableName)
         {
-            if (QSqlDatabase::database().transaction() == false) {
+            if (database.transaction() == false) {
                 qDebug() << "DB_Database TempIdsTable database transaction error:";
             }
-            if (query.exec("CREATE TEMP TABLE IF NOT EXISTS " + tableName + " (ID INT PRIMARY KEY)") == false) {
+            if (query.exec("CREATE TEMP TABLE IF NOT EXISTS " + tableName + " (Id INT PRIMARY KEY)") == false) {
                 qDebug() << "DB_Database TempIdsTable CREATE TABLE error:" << query.lastError().text();
             }
             addIds(ids);
@@ -56,7 +91,7 @@ protected:
             if (query.exec("DROP TABLE IF EXISTS " + tableName) == false) {
                 qDebug() << "DB_Database TempIdsTable DROP TABLE error:" << query.lastError().text();
             }
-            if (QSqlDatabase::database().commit() == false) {
+            if (database.commit() == false) {
                 qDebug() << "DB_Database TempIdsTable database commit error:";
             }
         }
@@ -67,6 +102,8 @@ protected:
                 query.exec();
             }
         }
+
+        QSqlDatabase database;
         QSqlQuery query;
         const QString tableName;
     };
@@ -91,7 +128,7 @@ public:
         QString sql = QString("SELECT Id, filePath, fileTitle, fileTag FROM %1 WHERE Id = ?")
             .arg(DB::FileInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info_id);
         if (query.exec() == false || query.next() == false) {
@@ -109,7 +146,7 @@ public:
             .arg(index)
             .arg(DB::FileInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info_id);
         if (query.exec() == false || query.next() == false) {
@@ -122,13 +159,13 @@ public:
 
     virtual QHash<int, FileInfo_T> getFileInfo(const QList<int>& info_ids)
     {
-        TempIdsTable temp_table(info_ids);
+        TempIdsTable temp_table(db, info_ids);
         QString sql = QString(R"(
             SELECT * FROM %1 AS F_Info
             JOIN %2 AS T_Ids ON F_Info.Id = T_Ids.Id
         )").arg(DB::FileInfo).arg(temp_table.tableName);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         if (query.exec() == false) {
             qDebug() << "DB_Database getFileInfo failed - info_ids:" << info_ids
@@ -149,7 +186,7 @@ public:
         QString sql = QString("SELECT Id FROM %1 WHERE filePath = ?")
             .arg(DB::FileInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(DB::canonicalPath(path));
         if (query.exec() == false || query.next() == false) {
@@ -157,13 +194,6 @@ public:
             return -1;
         }
         return query.value(0).toInt();
-    }
-
-    virtual QString getFileInfo_CoverHashValue(QString file_path)
-    {
-        int info_id = getFileInfo_Id(file_path);
-        if (info_id < 0) return {};
-        return getFileInfo(info_id, DB_FileInfo::I_CoverHashValue).toString();
     }
 
     virtual QList<QString> getFileInfo_TagValues(QString list_id)
@@ -174,7 +204,7 @@ public:
 
     virtual QList<QString> getFileInfo_TagValues(const QList<int>& info_ids)
     {
-        TempIdsTable temp_table(info_ids);
+        TempIdsTable temp_table(db, info_ids);
         QString sql = QString(R"(
             SELECT DISTINCT json_each.value
             FROM %1 AS F_Info
@@ -182,7 +212,7 @@ public:
             CROSS JOIN json_each(F_Info.fileTag)
         )").arg(DB::FileInfo).arg(temp_table.tableName);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         if (query.exec() == false) {
             qDebug() << "DB_Database getFileInfo_TagValues failed - info_ids:" << info_ids
@@ -211,7 +241,7 @@ public:
             .arg(DB_FileInfo::I_FileTitle)
             .arg(DB_FileInfo::I_FileTag);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(DB::canonicalPath(info.filePath));
         query.addBindValue(info.fileTitle);
@@ -239,7 +269,7 @@ public:
             .arg(DB::FileInfo)
             .arg(index);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":data", data);
         query.bindValue(":info_id", info_id);
@@ -251,20 +281,13 @@ public:
         return 0;
     }
 
-    virtual int setFileInfo_CoverHashValue(QString file_path, QString file_hash)
-    {
-        int info_id = getFileInfo_Id(file_path);
-        if (info_id < 0) return -1;
-        return setFileInfo(info_id, DB_FileInfo::I_CoverHashValue, file_hash);
-    }
-
     virtual int deleteFileInfo(int info_id)
     {
         QString sql = QString("DELETE FROM %1 WHERE Id = %2")
             .arg(DB::FileInfo)
             .arg(info_id);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         if (query.exec() == false) {
             qDebug() << "DB_Database deleteFileInfo failed - info_id:" << info_id
@@ -291,7 +314,7 @@ public:
             WHERE name = :list_id
         )").arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":list_id", list_id);
         query.bindValue(":sort_tag", sort_tag != DB_ListInfo::I_ReverseSortTag ? sort_tag : QVariant());
@@ -322,7 +345,7 @@ public:
 
     virtual QList<int> searchFileInfo(const QList<int>& info_ids, QString search_tag)
     {
-        TempIdsTable temp_table(info_ids);
+        TempIdsTable temp_table(db, info_ids);
         QString sql = QString(R"(
             SELECT DISTINCT F_Info.Id AS Id
             FROM %1 AS F_Info
@@ -343,7 +366,7 @@ public:
         //     WHERE F_Tag.value GLOB S_Tag.value;
         // )").arg(DB::FileInfo).arg(temp_table.tableName);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":search_tag", search_tag);
         if (query.exec() == false) {
@@ -378,7 +401,7 @@ public:
         QString sql = QString("SELECT name, type, fileInfoIds, sortTag, selectTag FROM %1 WHERE name = ?")
             .arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info_id);
         if (query.exec() == false || query.next() == false) {
@@ -396,7 +419,7 @@ public:
             .arg(index)
             .arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info_id);
         if (query.exec() == false || query.next() == false) {
@@ -412,7 +435,7 @@ public:
         QString sql = QString("SELECT name FROM %1 WHERE type = ? ORDER BY listInfoIndex ASC")
             .arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(type);
         if (query.exec() == false) {
@@ -433,7 +456,7 @@ public:
         QString sql = QString("SELECT value FROM json_each((SELECT fileInfoIds FROM %1 WHERE name = ?))")
             .arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info_id);
         if (query.exec() == false) {
@@ -454,7 +477,7 @@ public:
         QString sql = QString("INSERT INTO %1 (name, type, fileInfoIds, sortTag, selectTag) VALUES (?, ?, ?, ?, ?)")
             .arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info.name);
         query.addBindValue(info.type);
@@ -486,7 +509,7 @@ public:
             )
         )").arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":list_id", list_id);
         query.bindValue(":file_id", file_id);
@@ -535,7 +558,7 @@ public:
             .arg(DB::FileListInfo)
             .arg(index);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":data", data);
         query.bindValue(":info_id", info_id);
@@ -590,7 +613,7 @@ public:
             )
         )").arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":info_id", info_id);
         query.bindValue(":type", info_type);
@@ -614,7 +637,7 @@ public:
         QString sql = QString("DELETE FROM %1 WHERE name = ?")
             .arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info_id);
         if (query.exec() == false) {
@@ -630,7 +653,7 @@ public:
         QString sql = QString("UPDATE %1 SET fileInfoIds = json_remove(fileInfoIds, '$[:index]') WHERE name = :list_id")
             .arg(DB::FileListInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":index", index);
         query.bindValue(":list_id", list_id);
@@ -648,7 +671,7 @@ public:
         QString sql = QString("SELECT name FROM %1")
             .arg(DB::CreatorInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         if (query.exec() == false) {
             qDebug() << "DB_Database getCreatorInfo_NameAll failed"
@@ -668,7 +691,7 @@ public:
         QString sql = QString("SELECT fileId FROM %1")
             .arg(DB::NetworkFileInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         if (query.exec() == false) {
             qDebug() << "YT_FileDatabase getCreatorInfo_FileIds failed"
@@ -688,7 +711,7 @@ public:
         QString sql = QString("SELECT fileId FROM %1 WHERE creatorId = :creator_id")
             .arg(DB::NetworkFileInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":creator_id", info_id);
         if (query.exec() == false) {
@@ -702,6 +725,81 @@ public:
             info_ids.append(query.value(0).toInt());
         }
         return info_ids;
+    }
+
+    virtual QString getFileCoverInfo_HashValue(QString file_path)
+    {
+        QString sql = QString("SELECT hashValue FROM FileCoverInfo WHERE filePath = ?");
+
+        QSqlQuery query(db);
+        query.prepare(sql);
+        query.addBindValue(DB::canonicalPath(file_path));
+        if (query.exec() == false) {
+            qDebug() << "DB_Database getFileCoverInfo_HashValue failed - path:" << file_path
+                << "error:" << query.lastError().text();
+            return {};
+        }
+        if (query.next() == false) return {};
+
+        return query.value(0).toString();
+    }
+
+    virtual QPointF getFileCoverInfo_VisualFocus(QString file_path)
+    {
+        QString sql = QString("SELECT visualFocusX, visualFocusY FROM FileCoverInfo WHERE filePath = ?");
+
+        QSqlQuery query(db);
+        query.prepare(sql);
+        query.addBindValue(DB::canonicalPath(file_path));
+        if (query.exec() == false) {
+            qDebug() << "DB_Database getFileCoverInfo_VisualFocus failed - path:" << file_path
+                << "error:" << query.lastError().text();
+            return {};
+        }
+        if (query.next() == false) return {};
+
+        return QPointF(query.value(0).toDouble(), query.value(1).toDouble());
+    }
+
+    virtual int setFileCoverInfo_HashValue(QString file_path, QString data)
+    {
+        QString sql = QString(R"(
+            INSERT INTO FileCoverInfo (filePath, hashValue)
+            VALUES (:filePath, :data)
+            ON CONFLICT(filePath) DO UPDATE SET hashValue = excluded.hashValue
+        )");
+        QSqlQuery query(db);
+        query.prepare(sql);
+        query.bindValue(":data", data);
+        query.bindValue(":filePath", DB::canonicalPath(file_path));
+        if (query.exec() == false) {
+            qDebug() << "DB_Database setFileCoverInfo_HashValue failed - file_path:" << file_path
+                << "data:" << data << "error:" << query.lastError().text();
+            return -1;
+        }
+        return 0;
+    }
+
+    virtual int setFileCoverInfo_VisualFocus(QString file_path, QPointF data)
+    {
+        QString sql = QString(R"(
+            INSERT INTO FileCoverInfo (filePath, visualFocusX, visualFocusY)
+            VALUES (:filePath, :x, :y)
+            ON CONFLICT(filePath) DO UPDATE SET
+                visualFocusX = excluded.visualFocusX,
+                visualFocusY = excluded.visualFocusY
+        )");
+        QSqlQuery query(db);
+        query.prepare(sql);
+        query.bindValue(":x", data.x());
+        query.bindValue(":y", data.y());
+        query.bindValue(":filePath", DB::canonicalPath(file_path));
+        if (query.exec() == false) {
+            qDebug() << "DB_Database setFileCoverInfo_VisualFocus failed - file_path:" << file_path
+                << "data:" << data << "error:" << query.lastError().text();
+            return -1;
+        }
+        return 0;
     }
 
     const QString listInfoType;

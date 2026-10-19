@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import YT_Player
 import HuskarUI.Basic
+import YT_Material as YT_M
 
 QtObject {
     objectName: "YT"
@@ -16,6 +17,10 @@ QtObject {
 
     property FileWidget fileWidget: null
 
+    property Item setWidget: null
+
+    property Item testWidget: null
+
     property int widgetIndex: 0
     readonly property ObjectModel widgetInfos: ObjectModel {
         YT_WidgetInfo {
@@ -23,24 +28,35 @@ QtObject {
             widget: YT.musicWidget
             widgetName: "MusicWidget"
             logoPath: "qrc:/Ui_Image/music_logo.png"
+            logoIconPath: YT_M.IconProvider.LibraryMusic
         }
         YT_WidgetInfo {
             title: "文件"
             widget: YT.fileWidget
             widgetName: "FileWidget"
             logoPath: "qrc:/Ui_Image/file_logo.png"
-        }
-        YT_WidgetInfo {
-            title: "壁纸"
-            widget: null
-            widgetName: "WallpaperWidget"
-            logoPath: "qrc:/Ui_Image/picture_logo.png"
+            logoIconPath: YT_M.IconProvider.FolderCopy
         }
         YT_WidgetInfo {
             title: "编辑"
             widget: null
             widgetName: "EditWidget"
             logoPath: "qrc:/Ui_Image/edit_logo.png"
+            logoIconPath: YT_M.IconProvider.EditSquare
+        }
+        YT_WidgetInfo {
+            title: "设置"
+            widget: YT.setWidget
+            widgetName: "SetWidget"
+            logoPath: "qrc:/Ui_Image/set_logo.png"
+            logoIconPath: YT_M.IconProvider.Settings
+        }
+        YT_WidgetInfo {
+            title: "测试"
+            widget: YT.testWidget
+            widgetName: "TestWidget"
+            logoPath: "qrc:/Ui_Image/picture_logo.png"
+            logoIconPath: YT_M.IconProvider.FrameBug
         }
     }
 
@@ -49,6 +65,7 @@ QtObject {
         property Item widget: null
         property string widgetName: ""
         property string logoPath: ""
+        property variant logoIconPath: ""
         readonly property YT_PathWidgetModel pathModel: widget ? widget.pathModel : null
         readonly property YT_SearchWidgetModel searchModel: widget ? widget.searchModel : null
     }

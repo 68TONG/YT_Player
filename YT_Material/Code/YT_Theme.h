@@ -20,11 +20,42 @@ public:
 
     Q_INVOKABLE static QColor setAlphaF(const QColor& color, float alpha);
 
+    enum class ThemeType : uint8_t {
+        SchemeContent = 0,
+        SchemeVibrant,
+        SchemeExpressive,
+        SchemeFidelity,
+        SchemeNeutral,
+        SchemeMonochrome,
+        SchemeTonalSpot,
+        SchemeRainbow,
+        SchemeFruitSalad,
+    };
+    Q_ENUM(ThemeType);
+
+    Q_PROPERTY(ThemeType themeType READ getThemeType WRITE setThemeType NOTIFY themeTypeChanged)
+        ThemeType themeType = ThemeType::SchemeContent;
+    ThemeType getThemeType() const;
+    void setThemeType(ThemeType data);
+    Q_SIGNAL void themeTypeChanged();
+
     Q_PROPERTY(QString themeSource READ getThemeSource WRITE setThemeSource NOTIFY themeSourceChanged)
         QString themeSource;
     QString getThemeSource() const;
-    void setThemeSource(const QString& data);
+    void setThemeSource(QString data);
     Q_SIGNAL void themeSourceChanged();
+
+    Q_PROPERTY(bool themeIsDark READ getThemeIsDark WRITE setThemeIsDark NOTIFY themeIsDarkChanged)
+        bool themeIsDark = false;
+    bool getThemeIsDark() const;
+    void setThemeIsDark(bool data);
+    Q_SIGNAL void themeIsDarkChanged();
+
+    Q_PROPERTY(double themeContrastLevel READ getThemeContrastLevel WRITE setThemeContrastLevel NOTIFY themeContrastLevelChanged)
+        double themeContrastLevel = 0.0;
+    double getThemeContrastLevel() const;
+    void setThemeContrastLevel(double data);
+    Q_SIGNAL void themeContrastLevelChanged();
 
     Q_PROPERTY(QColor Transparent READ getTransparent NOTIFY transparentChanged)
         QColor getTransparent() const;
@@ -250,29 +281,26 @@ public:
         QColor getOnErrorContainer() const;
     Q_SIGNAL void onErrorContainerChanged();
 
-    Q_PROPERTY(int Elevation0 READ getElevation0 NOTIFY elevation0Changed)
+    Q_PROPERTY(int ElevationNone READ getElevationNone CONSTANT)
+        int getElevationNone() const;
+
+    Q_PROPERTY(int Elevation0 READ getElevation0 CONSTANT)
         int getElevation0() const;
-    Q_SIGNAL void elevation0Changed();
 
-    Q_PROPERTY(int Elevation1 READ getElevation1 NOTIFY elevation1Changed)
+    Q_PROPERTY(int Elevation1 READ getElevation1 CONSTANT)
         int getElevation1() const;
-    Q_SIGNAL void elevation1Changed();
 
-    Q_PROPERTY(int Elevation2 READ getElevation2 NOTIFY elevation2Changed)
+    Q_PROPERTY(int Elevation2 READ getElevation2 CONSTANT)
         int getElevation2() const;
-    Q_SIGNAL void elevation2Changed();
 
-    Q_PROPERTY(int Elevation3 READ getElevation3 NOTIFY elevation3Changed)
+    Q_PROPERTY(int Elevation3 READ getElevation3 CONSTANT)
         int getElevation3() const;
-    Q_SIGNAL void elevation3Changed();
 
-    Q_PROPERTY(int Elevation4 READ getElevation4 NOTIFY elevation4Changed)
+    Q_PROPERTY(int Elevation4 READ getElevation4 CONSTANT)
         int getElevation4() const;
-    Q_SIGNAL void elevation4Changed();
 
-    Q_PROPERTY(int Elevation5 READ getElevation5 NOTIFY elevation5Changed)
+    Q_PROPERTY(int Elevation5 READ getElevation5 CONSTANT)
         int getElevation5() const;
-    Q_SIGNAL void elevation5Changed();
 
     Q_PROPERTY(int RadiusNone READ getRadiusNone NOTIFY radiusNoneChanged)
         int getRadiusNone() const;

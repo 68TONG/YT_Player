@@ -140,7 +140,6 @@ public:
     inline static const QString I_FilePath = "filePath";
     inline static const QString I_FileTitle = "fileTitle";
     inline static const QString I_FileTag = "fileTag";
-    inline static const QString I_CoverHashValue = "coverHashValue";
 };
 
 class DB_ListInfo : public DB_Info

@@ -13,6 +13,16 @@ T.Container {
         Large,
         Xlarge
     }
+    
+    property int styleType: -1
+    property bool styleType_Round: true
+    enum StyleT {
+        Elevated,
+        Filled,
+        Tonal,
+        Outlined,
+        Text
+    }
 
     implicitWidth: (orientation == Qt.Vertical ? root.containerSize : implicitContentWidth + leftPadding + rightPadding)
     implicitHeight: (orientation == Qt.Horizontal ? root.containerSize : implicitContentHeight + topPadding + bottomPadding)
@@ -121,6 +131,8 @@ T.Container {
     component M_Item: YT.Button {
         property ButtonContainer buttonContainer: null
         sizeType: buttonContainer ? buttonContainer.sizeType : YT.Button.Xsmall
+        styleType: buttonContainer ? buttonContainer.styleType : YT.Button.Filled
+        styleType_Round: buttonContainer ? buttonContainer.styleType_Round : true
 
         checkable: true
         property real leftRadius: {

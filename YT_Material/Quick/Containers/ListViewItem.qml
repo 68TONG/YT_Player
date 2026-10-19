@@ -1,15 +1,14 @@
-pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import YT_Material as YT
+import YT_Material as YT_M
 
-YT.AbstractButton {
+YT_M.AbstractButton {
     id: root
 
     indicator: null
     contentItem: GridLayout {
-        rowSpacing: YT.Theme.Space0
-        columnSpacing: root.spacing 
+        rowSpacing: YT_M.Theme.Space0
+        columnSpacing: root.spacing
         Text {
             text: root.text
             font: root.font
@@ -43,49 +42,52 @@ YT.AbstractButton {
         }
     }
 
-    elevation: draging ? YT.Theme.Elevation5 : YT.Theme.Elevation0
-    spacing: YT.Theme.Space150
-    implicitWidth: leftPadding + implicitContentWidth + rightPadding
-    implicitHeight: topPadding + implicitContentHeight + bottomPadding
-    verticalPadding: YT.Theme.Space125
-    horizontalPadding: YT.Theme.Space200
+    elevation: draging ? YT_M.Theme.Elevation5 : YT_M.Theme.ElevationNone
+    spacing: YT_M.Theme.Space150
+    verticalPadding: YT_M.Theme.Space125
+    horizontalPadding: YT_M.Theme.Space200
 
     radius: {
         if (enabled == false) {
-            return YT.Theme.RadiusExtraSmall;
+            return YT_M.Theme.RadiusExtraSmall;
         }
         if (checked) {
-            return YT.Theme.RadiusLarge;
+            return YT_M.Theme.RadiusLarge;
         } else if (pressed) {
-            return YT.Theme.RadiusLarge;
+            return YT_M.Theme.RadiusLarge;
         } else if (hovered) {
-            return YT.Theme.RadiusMedium;
+            return YT_M.Theme.RadiusMedium;
         }
         return 0;
     }
+    iconColor: {
+        if (enabled == false) {
+            return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.38);
+        }
+        if (checked) {
+            return YT_M.Theme.OnSurface;
+        }
+        return YT_M.Theme.OnSurfaceVariant;
+    }
     labelColor: {
         if (enabled == false) {
-            return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.38);
+            return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.38);
         }
-        if (draging) {
-            return YT.Theme.OnTertiaryContainer;
-        } else if (checked) {
-            return YT.Theme.OnSecondaryContainer;
+        if (checked) {
+            return YT_M.Theme.OnSecondaryContainer;
         }
-        return YT.Theme.OnSurface;
+        return YT_M.Theme.OnSurface;
     }
     containerColor: {
         if (enabled == false) {
-            return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.10);
+            return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.10);
         }
-        if (draging) {
-            return YT.Theme.TertiaryContainer;
-        } else if (checked) {
-            return YT.Theme.SecondaryContainer;
+        if (checked) {
+            return YT_M.Theme.SecondaryContainer;
         }
-        return YT.Theme.Surface;
+        return YT_M.Theme.Surface;
     }
     containerLayerColor: {
-        return enabled ? labelColor : YT.Theme.Transparent;
+        return enabled ? labelColor : YT_M.Theme.Transparent;
     }
 }

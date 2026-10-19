@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import YT_Material as YT
+import YT_Material as YT_M
 
 Item {
     id: root
@@ -15,55 +15,55 @@ Item {
     Rectangle {
         id: background
         anchors.fill: parent
-        border.color: YT.Theme.OutlineVariant
+        border.color: YT_M.Theme.OutlineVariant
         border.width: 0
 
-        readonly property real radiusFull: height / 2
-        radius: root.radius == YT.Theme.RadiusFull ? radiusFull : root.radius
-        topLeftRadius: root.topLeftRadius == YT.Theme.RadiusFull ? radiusFull : root.topLeftRadius
-        topRightRadius: root.topRightRadius == YT.Theme.RadiusFull ? radiusFull : root.topRightRadius
-        bottomLeftRadius: root.bottomLeftRadius == YT.Theme.RadiusFull ? radiusFull : root.bottomLeftRadius
-        bottomRightRadius: root.bottomRightRadius == YT.Theme.RadiusFull ? radiusFull : root.bottomRightRadius
+        readonly property real radiusFull: Math.min(width, height) / 2
+        radius: root.radius == YT_M.Theme.RadiusFull ? radiusFull : root.radius
+        topLeftRadius: root.topLeftRadius == YT_M.Theme.RadiusFull ? radiusFull : root.topLeftRadius
+        topRightRadius: root.topRightRadius == YT_M.Theme.RadiusFull ? radiusFull : root.topRightRadius
+        bottomLeftRadius: root.bottomLeftRadius == YT_M.Theme.RadiusFull ? radiusFull : root.bottomLeftRadius
+        bottomRightRadius: root.bottomRightRadius == YT_M.Theme.RadiusFull ? radiusFull : root.bottomRightRadius
         Behavior on radius {
-            SpringAnimation {
-                spring: 20
-                damping: 0.9
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
             }
         }
         Behavior on topLeftRadius {
-            SpringAnimation {
-                spring: 20
-                damping: 0.9
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
             }
         }
         Behavior on topRightRadius {
-            SpringAnimation {
-                spring: 20
-                damping: 0.9
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
             }
         }
         Behavior on bottomLeftRadius {
-            SpringAnimation {
-                spring: 20
-                damping: 0.9
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
             }
         }
         Behavior on bottomRightRadius {
-            SpringAnimation {
-                spring: 20
-                damping: 0.9
-            }
-        }
-        Behavior on color {
-            ColorAnimation {
-                easing.type: Easing.OutQuad
-                duration: 180
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
             }
         }
         Behavior on opacity {
             NumberAnimation {
-                easing.type: Easing.OutQuad
-                duration: 180
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
+            }
+        }
+        Behavior on color {
+            ColorAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
             }
         }
     }
@@ -80,20 +80,28 @@ Item {
         opacity: 0.08
     }
 
-    property alias diffusionLayer: diffusionLayer
-    property color diffusionLayerColor
-    property real diffusionLayerSize: 0
-    property point diffusionLayerPoint: Qt.point(0, 0)
-    property bool diffusionLayerVisible: false
-    Behavior on diffusionLayerSize {
-        NumberAnimation {
-            duration: 120
-            easing.type: Easing.OutQuad
-        }
+    property alias dragingLayer: dragingLayer
+    Rectangle {
+        id: dragingLayer
+        anchors.fill: parent
+        topLeftRadius: parent.topLeftRadius
+        topRightRadius: parent.topRightRadius
+        bottomLeftRadius: parent.bottomLeftRadius
+        bottomRightRadius: parent.bottomRightRadius
+        visible: false
+        opacity: 0.16
     }
+
+    property int diffusionLayerCount: 0
+    property bool diffusionLayerVisible: false
+    property color diffusionLayerColor: YT_M.Theme.Transparent
+    property point diffusionLayerPoint: Qt.point(0, 0)
+    property variant diffusionLayerProgress: undefined
     onDiffusionLayerVisibleChanged: {
         if (diffusionLayerVisible == false) {
-            diffusionLayerSize = 0;
+            return;
+        }
+        if (diffusionLayerCount >= 2) {
             return;
         }
 
@@ -103,41 +111,82 @@ Item {
         let farY = _point.y > height / 2 ? 0 : height;
         let dx = _point.x - farX;
         let dy = _point.y - farY;
-        diffusionLayerSize = 2 * Math.sqrt(dx * dx + dy * dy);
+        let size = 2 * Math.sqrt(dx * dx + dy * dy);
+        diffusionLayer_Com.createObject(this, {
+            targetSize: size
+        });
     }
-
-    YT.CircularMask {
-        id: diffusionLayer
-        anchors.fill: parent
-        topLeftRadius: parent.topLeftRadius
-        topRightRadius: parent.topRightRadius
-        bottomLeftRadius: parent.bottomLeftRadius
-        bottomRightRadius: parent.bottomRightRadius
-
-        targetItem: Item {
+    Component {
+        id: diffusionLayer_Com
+        YT_M.CircularMask {
+            id: diffusionLayer
             anchors.fill: parent
-            visible: false
-            Rectangle {
-                x: root.diffusionLayerPoint.x - width / 2
-                y: root.diffusionLayerPoint.y - height / 2
-                width: root.diffusionLayerSize
-                height: root.diffusionLayerSize
-                color: root.diffusionLayerColor
-                radius: YT.Theme.RadiusFull
-                opacity: 0.10
+            topLeftRadius: background.topLeftRadius
+            topRightRadius: background.topRightRadius
+            bottomLeftRadius: background.bottomLeftRadius
+            bottomRightRadius: background.bottomRightRadius
+
+            required property real targetSize
+            readonly property real currentSize: targetSize * progress
+            property real progress: root.diffusionLayerProgress ?? 0.0
+            opacity: (progress != 1.0 || root.diffusionLayerVisible) ? 0.10 : 0.0
+
+            Component.onCompleted: {
+                if (root.diffusionLayerProgress == undefined)
+                    progress = 1.0;
+                root.diffusionLayerCount = root.diffusionLayerCount + 1;
+            }
+            Component.onDestruction: {
+                root.diffusionLayerCount = root.diffusionLayerCount - 1;
+            }
+            Behavior on progress {
+                NumberAnimation {
+                    easing: YT_M.Easing.SpringFast
+                    duration: YT_M.Easing.Medium3
+                }
+            }
+            Behavior on opacity {
+                NumberAnimation {
+                    easing: YT_M.Easing.Standard
+                    duration: YT_M.Easing.Short4
+                    onRunningChanged: {
+                        if (diffusionLayer.opacity == 0.0)
+                            diffusionLayer.destroy();
+                    }
+                }
+            }
+            Connections {
+                target: root
+                function onDiffusionLayerVisibleChanged() {
+                    if (root.diffusionLayerVisible == false && root.diffusionLayerProgress != undefined)
+                        diffusionLayer.progress = 1.0;
+                }
+            }
+
+            targetItem: Item {
+                anchors.fill: parent
+                visible: false
+                Rectangle {
+                    x: root.diffusionLayerPoint.x - width / 2
+                    y: root.diffusionLayerPoint.y - height / 2
+                    width: diffusionLayer.currentSize
+                    height: diffusionLayer.currentSize
+                    color: root.diffusionLayerColor
+                    radius: YT_M.Theme.RadiusFull
+                }
             }
         }
     }
 
     property alias shadowLayer: shadowLayer
-    property int elevation: YT.Theme.Elevation0
+    property int elevation: YT_M.Theme.ElevationNone
     Loader {
         id: shadowLayer
         z: -true
         anchors.fill: parent
 
-        active: root.elevation != YT.Theme.Elevation0
-        sourceComponent: YT.ElevationEffect {
+        active: root.elevation != YT_M.Theme.ElevationNone
+        sourceComponent: YT_M.ElevationEffect {
             radius: root.radius
             elevation: root.elevation
         }

@@ -1,105 +1,86 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
-import HuskarUI.Basic
+import QtQuick.Controls.Basic
 import YT_Player
+import YT_Material as YT_M
 
 FileWidget {
     id: root
 
     curListInfoPath: "C:/Users/YI_TONG/Music"
-    readonly property list<Item> navigationWidget_Items: [controlView]
-    readonly property Item controlView: HusIconButton {
-        width: parent ? parent.width : 0
-        height: implicitHeight
-        type: HusButton.Type_Primary
-        iconSource: HusIcon.SearchOutlined
-    }
+    readonly property list<Item> navigationWidget_Items: []
 
     Component.onCompleted: {
         YT.fileWidget = this;
+        rootContent.addItem(listView);
+        rootContent.addItem(itemView);
     }
 
-    YT_SplitView {
+    YT_M.SplitView {
         id: rootContent
         anchors.fill: parent
+        handleSize: 6
+        handleScale: 0.95
+        spacing: 24
     }
 
-    readonly property YT_TreeListView listView: YT_TreeListView {
+    property alias listView: listView
+    YT_TreeListView {
         id: listView
-        parent: rootContent.contentItem
-
-        padding: YT_Info.Margin
+        padding: YT_M.Theme.Space75
         SplitView.preferredWidth: 100
         SplitView.fillHeight: true
 
-        model: listModel
-        delegate: listView_Delegate
-        followBackground.followItem: listView.view.currentItem
-        states: [
-            State {
-                name: ""
-                PropertyChanges {
-                    target: listView.followBackground
-                    followItem: listView.view.currentItem
-                }
-            },
-            State {
-                name: "MenuOpening || EditOpening"
-                when: listView_Menu.visible
-                PropertyChanges {
-                    target: listView.followBackground
-                    followItem: listView_Menu.parent
-                }
-            }
-        ]
+        model: root.listModel
+        delegate: root.listView_Delegate
+        background: Rectangle {
+            color: YT_M.Theme.SurfaceContainerHigh
+            radius: YT_M.Theme.RadiusSmall
+        }
     }
 
-    readonly property Component listView_Delegate: YT_TreeViewDelegate {
+    readonly property Component listView_Delegate: YT_M.TreeViewExItem {
         id: listView_Delegate
+        required property int index
         required property variant model
         required property string listName
         required property string listPath
 
-        contentItem: YT_Text {
-            text: listView_Delegate.listName
-            elide: Text.ElideRight
-        }
+        text: listName
+        implicitWidth: ListView.view.width
+        implicitHeight: topPadding + implicitContentHeight + bottomPadding
 
-        onHoveredChanged: {
-            if (hovered) {
-                listView.view.currentIndex = listView_Delegate.index;
-            } else if (listView.view.currentIndex == listView_Delegate.index) {
-                listView.view.currentIndex = -true;
-            }
-        }
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
+        TapHandler {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: function (mouse) {
-                listView.view.focus = true;
-                if (mouse.button == Qt.LeftButton) {
+            onTapped: function (eventPoint, button) {
+                if (button == Qt.LeftButton) {
                     root.curListInfoPath = listView_Delegate.listPath;
-                } else if (mouse.button == Qt.RightButton) {
+                } else if (button == Qt.RightButton) {
                     listView_Menu.open_YT(listView_Delegate);
                 } else {
                     return;
                 }
             }
-            onDoubleClicked: function (mouse) {
-                listView.toggleExpanded(index);
+            onDoubleTapped: function (eventPoint, button) {
+                listView.toggleExpanded(listView_Delegate.index);
             }
+        }
+        onIndicatorClicked: {
+            listView.toggleExpanded(listView_Delegate.index);
         }
     }
 
-    readonly property YT_Menu listView_Menu: YT_Menu {
+    YT_M.Menu {
         id: listView_Menu
+        m_isGetImplicitContentSize: true
+
         property variant modelHash
+        onClosed: parent = null
         Component.onCompleted: {
             modelHash = {
                 [FileListModel.LocalFileType]: {
-                    "default": [listView_Menu_Add, listView_Menu_Remove, listView_Menu_Rename, listView_Menu_CopyPath, listView_Menu_FileOperation]
+                    "default": [listView_Menu_Add, listView_Menu_Remove, listView_Menu_CopyPath, listView_Menu_Rename, listView_Menu_FileOperation]
                 },
                 [FileListModel.CreatorInfoType]: {
                     "default": [listView_Menu_CopyPath]
@@ -107,7 +88,7 @@ FileWidget {
                 [FileListModel.FileListInfoType]: {
                     "default": [listView_Menu_CopyPath],
                     "1": [listView_Menu_Add, listView_Menu_CopyPath],
-                    "2": [listView_Menu_Rename, listView_Menu_Remove, listView_Menu_CopyPath]
+                    "2": [listView_Menu_Remove, listView_Menu_CopyPath, listView_Menu_Rename]
                 }
             };
         }
@@ -147,9 +128,10 @@ FileWidget {
             return s_model_index;
         }
 
-        readonly property Item listView_Menu_Add: YT_Menu.YT_MenuItem {
+        readonly property Item listView_Menu_Add: YT_M.MenuItem {
             id: listView_Menu_Add
             text: "添加"
+            iconSource: YT_M.IconProvider.AddCircle
             onTriggered: {
                 const target = listView_Menu.parent;
                 if (target == null)
@@ -165,9 +147,10 @@ FileWidget {
                 editDelegate.open_YT(target, acceptedFunction, null);
             }
         }
-        readonly property Item listView_Menu_Remove: YT_Menu.YT_MenuItem {
+        readonly property Item listView_Menu_Remove: YT_M.MenuItem {
             id: listView_Menu_Remove
             text: "删除"
+            iconSource: YT_M.IconProvider.Delete
             onTriggered: {
                 const target = listView_Menu.parent;
                 if (target == null)
@@ -181,9 +164,10 @@ FileWidget {
                 messageDialog.open_YT("确定删除", acceptedFunction);
             }
         }
-        readonly property Item listView_Menu_Rename: YT_Menu.YT_MenuItem {
+        readonly property Item listView_Menu_Rename: YT_M.MenuItem {
             id: listView_Menu_Rename
             text: "重命名"
+            iconSource: YT_M.IconProvider.Edit
             onTriggered: {
                 const target = listView_Menu.parent;
                 if (target == null)
@@ -197,62 +181,195 @@ FileWidget {
                 editDelegate.open_YT(target, acceptedFunction, null);
             }
         }
-        readonly property Item listView_Menu_CopyPath: YT_Menu.YT_MenuItem {
+        readonly property Item listView_Menu_CopyPath: YT_M.MenuItem {
             id: listView_Menu_CopyPath
             text: "复制路径"
+            iconSource: YT_M.IconProvider.SubdirectoryArrowRight
             onTriggered: {
                 console.log("listView_Menu_CopyPath");
             }
         }
-        readonly property YT_Menu listView_Menu_FileOperation: YT_Menu {
+        readonly property Menu listView_Menu_FileOperation: YT_M.Menu {
             id: listView_Menu_FileOperation
             title: "文件操作"
-            YT_Menu.YT_MenuItem {
+            // icon.source: YT_M.IconProvider.Link2
+            YT_M.MenuItem {
                 text: "复制"
+                iconSource: YT_M.IconProvider.ContentCopy
                 onTriggered: {}
             }
-            YT_Menu.YT_MenuItem {
+            YT_M.MenuItem {
                 text: "粘贴"
+                iconSource: YT_M.IconProvider.ContentPaste
                 onTriggered: {}
             }
-            YT_Menu.YT_MenuItem {
+            YT_M.MenuItem {
                 text: "剪切"
+                iconSource: YT_M.IconProvider.ContentCut
                 onTriggered: {}
             }
         }
-        onClosed: parent = null
     }
 
-    readonly property YT_GridView itemView: YT_GridView {
+    property alias itemView: itemView
+    Loader {
         id: itemView
-        parent: rootContent.contentItem
-        readonly property int delegateSplitCount: view.width / 200
-        readonly property int delegateSize: view.width / delegateSplitCount
+        sourceComponent: root.itemCardView
+        SplitView.fillWidth: true
+        SplitView.fillHeight: true
+    }
 
-        padding: YT_Info.Margin
-        view.currentIndex: 0
-        view.cellWidth: view.currentItem ? view.currentItem.implicitWidth : 0
-        view.cellHeight: view.currentItem ? view.currentItem.implicitHeight : 0
+    readonly property Component itemCardView: GridView {
+        id: itemCardView
+        cellWidth: width / Math.floor(width / 200)
+        cellHeight: (200 * 9 / 16) + (24 * 3) + (1) + (YT_M.Theme.Space100 * 2) + (YT_M.Theme.Space25 * 3)
 
         SplitView.fillWidth: true
         SplitView.fillHeight: true
 
-        model: itemModel
-        delegate: itemDelegate
+        model: root.itemModel
+        delegate: root.itemCardDelegate
+        property Item expandItem: null
+    }
 
-        TapHandler {
-            parent: itemView.view
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onTapped: function (eventPoint, button) {
-                if (button === Qt.LeftButton) {
-                    itemView.selectionModel.clear();
-                } else if (button === Qt.RightButton) {
-                    itemView_Menu.popup();
-                } else {
-                    return;
+    readonly property Component itemCardDelegate: YT_M.Card {
+        id: itemCardDelegate
+        required property int index
+        required property string infoTitle
+        required property variant infoTag
+        required property string filePath
+        readonly property real imageImplicitSize: 200 * (9 / 16)
+        readonly property bool expanded: GridView.view.expandItem == this // qmllint disable missing-property
+
+        z: expanded || itemCardDelegate_ExpandAnimation.running
+        width: GridView.view.cellWidth
+        height: expanded ? implicitHeight : GridView.view.cellHeight
+        scale: expanded ? 1.05 : 1.0
+        inset: YT_M.Theme.Space75
+        spacing: YT_M.Theme.Space25
+        topPadding: YT_M.Theme.Space100
+        bottomPadding: YT_M.Theme.Space100
+        horizontalPadding: YT_M.Theme.Space125
+        elevation: {
+            if (expanded) {
+                return YT_M.Theme.Elevation3;
+            } else if (draging) {
+                return YT_M.Theme.Elevation3;
+            } else if (pressed) {
+                return YT_M.Theme.Elevation0;
+            } else if (hovered) {
+                return YT_M.Theme.Elevation1;
+            } else {
+                return YT_M.Theme.Elevation0;
+            }
+        }
+        Behavior on height {
+            NumberAnimation {
+                id: itemCardDelegate_ExpandAnimation
+                easing: YT_M.Easing.SpringFastEx
+                duration: YT_M.Easing.Medium3
+            }
+        }
+        Behavior on scale {
+            NumberAnimation {
+                easing: YT_M.Easing.SpringFastEx
+                duration: YT_M.Easing.Medium3
+            }
+        }
+
+        indicator: null
+        contentItem: Column {
+            spacing: itemCardDelegate.spacing
+            topPadding: itemCardDelegate.imageImplicitSize
+            Text {
+                width: parent.width
+                height: 24
+                text: itemCardDelegate.infoTitle
+                font: YT_M.Theme.FontBodyLarge
+                elide: Text.ElideRight
+                color: YT_M.Theme.OnSurface
+                leftPadding: YT_M.Theme.Space25
+                rightPadding: itemCardDelegate_ExpandButton.width
+
+                YT_M.IconButton {
+                    id: itemCardDelegate_ExpandButton
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    checkable: true
+                    checked: itemCardDelegate.expanded
+                    iconSize: parent.height
+                    iconSource: checked ? YT_M.IconProvider.UnfoldLess : YT_M.IconProvider.UnfoldMore
+                    styleType: YT_M.IconButton.Tonal
+                    implicitHeight: 24
+                    containerLayerColor: YT_M.Theme.Transparent
+                    onToggled: {
+                        itemCardDelegate.GridView.view.expandItem = checked ? itemCardDelegate : null;
+                    }
+                }
+            }
+
+            YT_PathWidget_TagFlow {
+                expanded: itemCardDelegate.expanded
+                width: parent.width
+                height: implicitHeight
+                model: root.itemModel.selectTagModel
+                delegate: YT_PathWidget_TagButton {
+                    required property string modelData
+                    readonly property string modelRoleStr: root.itemModel.roleNames(modelData)
+                    text: modelRoleStr + ": " + root.itemModel.dataIndex(itemCardDelegate.index, modelData)
+                    width: Math.min(parent ? parent.width : implicitWidth, implicitWidth)
+                }
+            }
+
+            Rectangle {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - YT_M.Theme.Space200
+                height: 1
+                color: YT_M.Theme.OutlineVariant
+            }
+
+            YT_PathWidget_TagFlow {
+                expanded: itemCardDelegate.expanded
+                width: parent.width
+                height: implicitHeight
+                model: itemCardDelegate.infoTag || ["<No Data>"]
+                delegate: YT_PathWidget_TagButton {
+                    required property string modelData
+                    text: modelData
+                    width: Math.min(parent ? parent.width : implicitWidth, implicitWidth)
+                    onClicked: {
+                        root.pathModel.addSrcData(modelData);
+                    }
                 }
             }
         }
+
+        background: YT_M.Background {
+            initProperty: itemCardDelegate
+            YT_M.RoundImage {
+                readonly property point visualFocus: YT_Func.getFileCoverVisualFocus(itemCardDelegate.filePath)
+                source: YT_Func.getFileCoverPath(itemCardDelegate.filePath)
+                asynchronous: true
+                width: parent.width
+                height: itemCardDelegate.imageImplicitSize
+                radius: parent.radius
+                fillMode: Image.Pad
+                imageClipRect: YT_Func.getFileCoverVisualRect(width / height, Qt.size(implicitWidth, implicitHeight), visualFocus)
+            }
+        }
+
+        onClickedEx: function (eventPoint, button, modifiers) {
+            if (button == Qt.LeftButton) {
+                {}
+            } else if (button == Qt.RightButton) {
+                itemView_Menu.popup(itemCardDelegate);
+            }
+        }
+        // onDoubleClicked: {
+        //     if (root.itemModel.dataIndex(itemCardDelegate.index, FileItemModel.FileType_Role) == "Folder") {
+        //         root.curListInfoPath = root.itemModel.dataIndex(itemCardDelegate.index, FileItemModel.FilePath_Role);
+        //     }
+        // }
     }
 
     // readonly property YT_FlowView itemView: YT_FlowView {
@@ -331,109 +448,6 @@ FileWidget {
     //     }
     // }
 
-    readonly property Component itemDelegate: AbstractButton {
-        id: itemDelegate
-        required property int index
-        required property string infoTitle
-
-        implicitWidth: itemView.delegateSize
-        implicitHeight: implicitContentHeight + topPadding + bottomPadding
-        topInset: YT_Info.MarginSmall
-        leftInset: YT_Info.MarginSmall
-        rightInset: YT_Info.MarginSmall
-        bottomInset: YT_Info.MarginSmall
-
-        padding: YT_Info.Margin * 2
-        topPadding: indicator.height + padding
-
-        indicator: YT_RoundImage {
-            source: root.getFileInfo_CoverPath(itemModel.dataIndex(itemDelegate.index, FileItemModel.FilePath_Role))
-            asynchronous: true
-            fillMode: Image.PreserveAspectCrop
-            x: itemDelegate.leftInset
-            y: itemDelegate.topInset
-            width: parent.width - itemDelegate.leftInset - itemDelegate.rightInset
-            height: parent.width
-            padding: +true
-            radius: YT_Info.Radius
-            // opacity: 0.618
-        }
-        background: YT_Rectangle {
-            border.color: itemDelegate.hovered ? YT_Info.ItemFocusColor : YT_Info.ItemColor
-        }
-        contentItem: ColumnLayout {
-            spacing: YT_Info.Spacing
-            YT_Text {
-                text: itemDelegate.infoTitle
-                font.pixelSize: 16
-                font.bold: true
-                elide: Text.ElideRight
-                Layout.fillWidth: true
-            }
-            Repeater {
-                model: itemModel.selectTagModel
-                delegate: Loader {
-                    required property var modelData
-                    sourceComponent: modelData != FileItemModel.InfoTag_Role ? textTagView : listTagView
-                    Layout.fillWidth: true
-                    // Layout.preferredHeight: item.implciitHeight
-                }
-            }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: function (mouse) {
-                itemView.view.focus = true;
-                if (mouse.button === Qt.LeftButton) {} else if (mouse.button === Qt.RightButton) {
-                    itemView_Menu.popup(itemDelegate);
-                } else {
-                    return;
-                }
-            }
-            onDoubleClicked: function (mouse) {
-                if (mouse.button !== Qt.LeftButton)
-                    return;
-                if (itemModel.dataIndex(itemDelegate.index, FileItemModel.FileType_Role) == "Folder") {
-                    itemModel.currentDir = itemModel.dataIndex(itemDelegate.index, FileItemModel.FilePath_Role);
-                }
-            }
-        }
-
-        readonly property Component textTagView: Column {
-            id: textTagView
-            readonly property int infoRole: parent.modelData
-            readonly property string infoRoleStr: itemModel.roleNames(infoRole)
-            readonly property variant infoRoleData: itemModel.dataIndex(itemDelegate.index, infoRole)
-
-            spacing: YT_Info.SpacingSmall
-            YT_Text {
-                text: textTagView.infoRoleStr
-                // color: Qt.lighter(YT_Info.FontColor, 0.85)
-            }
-            YT_Text {
-                text: textTagView.infoRoleData || "<No Data>"
-            }
-        }
-
-        readonly property Component listTagView: YT_PathWidget_TagView {
-            id: listTagView
-            readonly property int infoRole: parent.modelData
-            readonly property string infoRoleStr: itemModel.roleNames(infoRole)
-            readonly property variant infoRoleData: itemModel.dataIndex(itemDelegate.index, infoRole) || ["<No Data>"]
-
-            spacing: YT_Info.SpacingSmall
-            modelData: infoRoleStr
-            model: infoRoleData
-            delegate: YT_PathWidget_TagItem {
-                required property string modelData
-                pathModel: root.pathModel
-                pathData: modelData
-            }
-        }
-    }
-
     // readonly property Component itemDelegate: YT_ItemDelegate {
     //     id: itemDelegate
     //     info_YT: itemView.delegateInfo
@@ -506,136 +520,139 @@ FileWidget {
     //     }
     // }
 
+    YT_M.Menu {
+        id: itemView_Menu
+        m_isGetImplicitContentSize: true
+        // function addOperationPaths() {
+        //     root.operationPaths = [];
+        //     const selectedIndexes = itemView.selectionModel.selectedIndexes;
+        //     if (selectedIndexes.length === 0) {
+        //         return false;
+        //     }
+
+        //     for (const model_index of selectedIndexes) {
+        //         const index = model_index.row;
+        //         root.operationPaths.push(itemModel.data(index, FileItemModel.FileInfoRole_Path));
+        //     }
+        //     return true;
+        // }
+
+        YT_M.Menu {
+            m_isGetImplicitContentSize: true
+            title: "添加到"
+            YT_M.Menu {
+                m_isGetImplicitContentSize: true
+                title: "MusicWidget"
+                model: YT.musicListModel
+                delegate: YT_M.MenuItem {
+                    required property string infoId
+                    text: infoId
+                    // onTriggered: {
+                    //     // if (itemView_Menu.addOperationPaths() === false) {
+                    //     //     return messageDialog.open_YT("未选择文件");
+                    //     // }
+                    //     root.operationType = "MusicWidget";
+                    //     let data = itemModel.dataIndex(itemView_Menu.parent.index, FileItemModel.FilePath_Role);
+                    //     YT.musicListModel.addFileInfo(infoId, [data]);
+                    // }
+                }
+            }
+
+            YT_M.Menu {
+                title: "WallpaperWidget"
+                enabled: false
+            }
+        }
+
+        Action {
+            text: "重命名"
+            // onTriggered: {
+            //     const index = itemView.selectionModel.currentIndex.row;
+            //     if (index < 0)
+            //         return console.log("itemView_Menu 重命名 index < 0");
+
+            //     const target = itemView.view.itemAtIndex(index);
+            //     root.operationPaths = [itemModel.data(index, FileItemModel.FileInfoRole_Path)];
+            //     root.operationType = text;
+
+            //     editDelegate.text = itemModel.data(index, FileItemModel.FileInfoRole_Name);
+            //     editDelegate.open_YT(target, acceptedFunction, null);
+            // }
+            // function acceptedFunction(data, user_data) {
+            //     root.rename(itemModel.currentDir + "/" + data);
+            // }
+        }
+
+        Action {
+            text: "粘贴"
+            // enabled: root.operationType === "剪切" || root.operationType === "复制"
+            // onTriggered: {
+            //     if (root.operationType === "剪切") {
+            //         root.move(itemModel.currentDir);
+            //         root.operationPaths = null;
+            //         root.operationType = null;
+            //     } else if (root.operationType === "复制") {
+            //         root.copy(itemModel.currentDir);
+            //     }
+            // }
+        }
+
+        Action {
+            text: "剪切"
+            // onTriggered: {
+            //     if (itemView_Menu.addOperationPaths() === false) {
+            //         return messageDialog.open_YT("未选择文件");
+            //     }
+            //     root.operationType = text;
+            // }
+        }
+
+        Action {
+            text: "复制"
+            // onTriggered: {
+            //     if (itemView_Menu.addOperationPaths() === false) {
+            //         return messageDialog.open_YT("未选择文件");
+            //     }
+            //     root.operationType = text;
+            // }
+        }
+
+        Action {
+            text: "删除"
+            // onTriggered: {
+            //     if (itemView_Menu.addOperationPaths() === false) {
+            //         return messageDialog.open_YT("未选择文件");
+            //     }
+            //     root.operationType = text;
+            //     messageDialog.open_YT("确定删除", function () {
+            //         root.remove();
+            //     });
+            // }
+        }
+
+        YT_M.Menu {
+            title: "新建"
+            Action {
+                text: "文件夹"
+                // onClicked: {
+                //     root.createFolder(itemModel.currentDir);
+                // }
+            }
+            Action {
+                text: "文件"
+                // onClicked: {
+                //     root.create(itemModel.currentDir);
+                // }
+            }
+        }
+    }
+
     readonly property YT_EditDelegate editDelegate: YT_EditDelegate {
         id: editDelegate
     }
 
     readonly property YT_MessageDialog messageDialog: YT_MessageDialog {
         id: messageDialog
-    }
-
-    readonly property YT_Menu itemView_Menu: YT_Menu {
-        id: itemView_Menu
-
-        function addOperationPaths() {
-            root.operationPaths = [];
-            const selectedIndexes = itemView.selectionModel.selectedIndexes;
-            if (selectedIndexes.length === 0) {
-                return false;
-            }
-
-            for (const model_index of selectedIndexes) {
-                const index = model_index.row;
-                root.operationPaths.push(itemModel.data(index, FileItemModel.FileInfoRole_Path));
-            }
-            return true;
-        }
-
-        YT_Menu {
-            title: "添加到"
-            YT_Menu {
-                title: "MusicWidget"
-                model: YT.musicListModel
-                delegate: YT_Menu.YT_MenuItem {
-                    required property string infoId
-                    text: infoId
-                    onTriggered: {
-                        // if (itemView_Menu.addOperationPaths() === false) {
-                        //     return messageDialog.open_YT("未选择文件");
-                        // }
-                        root.operationType = "MusicWidget";
-                        let data = itemModel.dataIndex(itemView_Menu.parent.index, FileItemModel.FilePath_Role);
-                        YT.musicListModel.addFileInfo(infoId, [data]);
-                    }
-                }
-            }
-
-            YT_Menu {
-                title: "WallpaperWidget"
-            }
-        }
-
-        Action {
-            text: "重命名"
-            onTriggered: {
-                const index = itemView.selectionModel.currentIndex.row;
-                if (index < 0)
-                    return console.log("itemView_Menu 重命名 index < 0");
-
-                const target = itemView.view.itemAtIndex(index);
-                root.operationPaths = [itemModel.data(index, FileItemModel.FileInfoRole_Path)];
-                root.operationType = text;
-
-                editDelegate.text = itemModel.data(index, FileItemModel.FileInfoRole_Name);
-                editDelegate.open_YT(target, acceptedFunction, null);
-            }
-            function acceptedFunction(data, user_data) {
-                root.rename(itemModel.currentDir + "/" + data);
-            }
-        }
-
-        Action {
-            text: "粘贴"
-            enabled: root.operationType === "剪切" || root.operationType === "复制"
-            onTriggered: {
-                if (root.operationType === "剪切") {
-                    root.move(itemModel.currentDir);
-                    root.operationPaths = null;
-                    root.operationType = null;
-                } else if (root.operationType === "复制") {
-                    root.copy(itemModel.currentDir);
-                }
-            }
-        }
-
-        Action {
-            text: "剪切"
-            onTriggered: {
-                if (itemView_Menu.addOperationPaths() === false) {
-                    return messageDialog.open_YT("未选择文件");
-                }
-                root.operationType = text;
-            }
-        }
-
-        Action {
-            text: "复制"
-            onTriggered: {
-                if (itemView_Menu.addOperationPaths() === false) {
-                    return messageDialog.open_YT("未选择文件");
-                }
-                root.operationType = text;
-            }
-        }
-
-        Action {
-            text: "删除"
-            onTriggered: {
-                if (itemView_Menu.addOperationPaths() === false) {
-                    return messageDialog.open_YT("未选择文件");
-                }
-                root.operationType = text;
-                messageDialog.open_YT("确定删除", function () {
-                    root.remove();
-                });
-            }
-        }
-
-        YT_Menu {
-            title: "新建"
-            YT_Menu.YT_MenuItem {
-                text: "文件夹"
-                onClicked: {
-                    root.createFolder(itemModel.currentDir);
-                }
-            }
-            YT_Menu.YT_MenuItem {
-                text: "文件"
-                onClicked: {
-                    root.create(itemModel.currentDir);
-                }
-            }
-        }
     }
 
     // readonly property YT_PopupList itemHeader_Menu: YT_PopupList {

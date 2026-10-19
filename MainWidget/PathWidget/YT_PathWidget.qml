@@ -127,13 +127,13 @@ Control {
         Row {
             id: pathView
             anchors.fill: parent
+            anchors.leftMargin: YT_M.Theme.Space100
 
             M_Item {
                 id: pathView_WidgetItem
-                implicitWidth: implicitHeight
-                padding: YT_M.Theme.Space100
-                iconSize: implicitHeight - topPadding - bottomPadding
-                iconSource: root.currentInfo.logoPath
+                iconFill: true
+                iconColor: YT_M.Theme.Primary
+                iconSource: root.currentInfo.logoIconPath
                 background: null
                 onClicked: console.log(iconSource)
             }
@@ -143,6 +143,7 @@ Control {
                 id: pathView_CollapseItem
                 topInset: YT_M.Theme.Space50
                 bottomInset: YT_M.Theme.Space50
+                iconColor: YT_M.Theme.Primary
                 iconSource: YT_M.IconProvider.MoreHoriz
                 onClicked: pathView_CollapseMenu.open()
             }
@@ -182,7 +183,7 @@ Control {
         Rectangle {
             z: -true
             anchors.fill: parent
-            color: YT_M.Theme.SurfaceContainerLowest
+            color: YT_M.Theme.SurfaceContainerHigh
             radius: YT_M.Theme.RadiusFull
         }
     }
@@ -209,6 +210,7 @@ Control {
         required property string modelData
 
         sizeType: YT_M.Button.Xsmall
+        styleType: YT_M.Button.Text
         text: modelData
         font.pointSize: 8
         spacing: YT_M.Theme.Space0
@@ -216,9 +218,6 @@ Control {
         bottomInset: YT_M.Theme.Space50
         leftPadding: YT_M.Theme.Space100
         rightPadding: YT_M.Theme.Space25
-        labelColor: YT_M.Theme.Secondary
-        containerColor: YT_M.Theme.Transparent
-        containerLayerColor: YT_M.Theme.OnSecondaryContainer
         iconSource: YT_M.IconProvider.KeyboardArrowRight
 
         indicator: YT_M.Icon {
@@ -325,9 +324,7 @@ Control {
 
     component M_Item: YT_M.IconButton {
         sizeType: YT_M.IconButton.Xsmall
+        styleType: YT_M.IconButton.Standard
         widthType: YT_M.IconButton.Narrow
-        labelColor: YT_M.Theme.Secondary
-        containerColor: YT_M.Theme.Transparent
-        containerLayerColor: YT_M.Theme.OnSecondaryContainer
     }
 }

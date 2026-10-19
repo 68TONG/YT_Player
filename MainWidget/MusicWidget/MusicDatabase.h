@@ -2,13 +2,16 @@
 
 #include <DB_DataBase.h>
 #include <MusicDataInfo.h>
+#include <QThread>
 
 class MusicDatabase : public DB_Database<MusicFileInfo, MusicListInfo>
 {
     MusicDatabase();
-    ~MusicDatabase();
+    explicit MusicDatabase(QThread* thread);
 public:
+    ~MusicDatabase();
     static MusicDatabase& obj();
+    static MusicDatabase& forCurrentThread();
 
     void initMusicFileInfo(MusicFileInfo& info, QSqlQuery& query);
 

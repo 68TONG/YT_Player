@@ -11,6 +11,15 @@
 #include "cpp/quantize/celebi.h"
 #include "cpp/score/score.h"
 #include "cpp/cam/hct.h"
+#include "cpp/scheme/scheme_content.h"
+#include "cpp/scheme/scheme_expressive.h"
+#include "cpp/scheme/scheme_fidelity.h"
+#include "cpp/scheme/scheme_fruit_salad.h"
+#include "cpp/scheme/scheme_monochrome.h"
+#include "cpp/scheme/scheme_neutral.h"
+#include "cpp/scheme/scheme_rainbow.h"
+#include "cpp/scheme/scheme_tonal_spot.h"
+#include "cpp/scheme/scheme_vibrant.h"
 
 YT_Theme::YT_Theme(QObject* parent)
     : QObject{ parent }
@@ -19,11 +28,11 @@ YT_Theme::YT_Theme(QObject* parent)
     initScheme();
 
     {
-        int fontId = QFontDatabase::addApplicationFont(":/Resources/MaterialSymbols.ttf");
+        int fontId = QFontDatabase::addApplicationFont(":/Resources/Fonts/MaterialSymbols.ttf");
         if (fontId >= 0) {
             QFontDatabase::applicationFontFamilies(fontId);
         }
-        fontId = QFontDatabase::addApplicationFont(":/Resources/Roboto-VariableFont.ttf");
+        fontId = QFontDatabase::addApplicationFont(":/Resources/Fonts/Roboto-VariableFont.ttf");
         if (fontId >= 0) {
             QFontDatabase::applicationFontFamilies(fontId);
         }
@@ -128,18 +137,66 @@ Q_INVOKABLE QColor YT_Theme::setAlphaF(const QColor& color, float alpha)
     return newColor;
 }
 
+YT_Theme::ThemeType YT_Theme::getThemeType() const
+{
+    return themeType;
+}
+
+void YT_Theme::setThemeType(ThemeType data)
+{
+    if (themeType == data)
+        return;
+
+    themeType = data;
+    emit themeTypeChanged();
+    initScheme();
+    emitScheme();
+}
+
 QString YT_Theme::getThemeSource() const
 {
     return themeSource;
 }
 
-void YT_Theme::setThemeSource(const QString& data)
+void YT_Theme::setThemeSource(QString data)
 {
     if (themeSource == data)
         return;
 
     themeSource = data;
     emit themeSourceChanged();
+    initScheme();
+    emitScheme();
+}
+
+bool YT_Theme::getThemeIsDark() const
+{
+    return themeIsDark;
+}
+
+void YT_Theme::setThemeIsDark(bool data)
+{
+    if (themeIsDark == data)
+        return;
+
+    themeIsDark = data;
+    emit themeIsDarkChanged();
+    initScheme();
+    emitScheme();
+}
+
+double YT_Theme::getThemeContrastLevel() const
+{
+    return themeContrastLevel;
+}
+
+void YT_Theme::setThemeContrastLevel(double data)
+{
+    if (qFuzzyCompare(themeContrastLevel, data))
+        return;
+
+    themeContrastLevel = data;
+    emit themeContrastLevelChanged();
     initScheme();
     emitScheme();
 }
@@ -424,6 +481,11 @@ QColor YT_Theme::getOnErrorContainer() const
     return QColor::fromRgba(static_cast<QRgb>(scheme->GetOnErrorContainer()));
 }
 
+int YT_Theme::getElevationNone() const
+{
+    return INT_MIN;
+}
+
 int YT_Theme::getElevation0() const
 {
     return 0;
@@ -657,10 +719,45 @@ void YT_Theme::initScheme()
         scheme = nullptr;
     }
 
+    auto createScheme = [&](const material_color_utilities::Hct& sourceColor) {
+        switch (themeType) {
+        case ThemeType::SchemeContent:
+            scheme = new material_color_utilities::SchemeContent(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeVibrant:
+            scheme = new material_color_utilities::SchemeVibrant(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeExpressive:
+            scheme = new material_color_utilities::SchemeExpressive(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeFidelity:
+            scheme = new material_color_utilities::SchemeFidelity(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeNeutral:
+            scheme = new material_color_utilities::SchemeNeutral(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeMonochrome:
+            scheme = new material_color_utilities::SchemeMonochrome(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeTonalSpot:
+            scheme = new material_color_utilities::SchemeTonalSpot(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeRainbow:
+            scheme = new material_color_utilities::SchemeRainbow(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        case ThemeType::SchemeFruitSalad:
+            scheme = new material_color_utilities::SchemeFruitSalad(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        default:
+            scheme = new material_color_utilities::SchemeContent(sourceColor, themeIsDark, themeContrastLevel);
+            break;
+        }
+        };
+
     if (QFile::exists(QUrl(themeSource).toLocalFile()) == false) {
         const auto sourceArgb = static_cast<material_color_utilities::Argb>(QColor(themeSource).rgba());
         material_color_utilities::Hct sourceColor{ sourceArgb };
-        scheme = new material_color_utilities::SchemeContent(sourceColor, false);
+        createScheme(sourceColor);
         return;
     }
 
@@ -671,37 +768,29 @@ void YT_Theme::initScheme()
     }
     image = image.scaledToWidth(512, Qt::SmoothTransformation);
 
-    // 2. 提取像素数据（ARGB格式）
     std::vector<material_color_utilities::Argb> pixels;
     pixels.reserve(image.width() * image.height());
 
     for (int y = 0; y < image.height(); ++y) {
         for (int x = 0; x < image.width(); ++x) {
             QRgb rgb = image.pixel(x, y);
-            // 注意：QImage 是 ARGB，MCU 也是 Argb，但字节序可能不同
-            // QRgb 是 0xAARRGGBB，MCU 的 Argb 也是 uint32_t
             pixels.push_back(static_cast<material_color_utilities::Argb>(rgb));
         }
     }
 
-    // 3. Quantize：把图片量化为 128 种颜色（默认）
-    // 返回的是颜色到数量的映射
     material_color_utilities::QuantizerResult colorToCount =
         material_color_utilities::QuantizeCelebi(pixels, 128);
 
-    // 4. Score：从量化结果中评分，选出最佳主题色
-    // 返回按分数排序的颜色列表
     material_color_utilities::ScoreOptions options;
-    options.desired = 4;                    // 返回最多 4 个候选色
-    options.fallback_color_argb = 0xff4b1ec5; // 你的默认紫色作为兜底
-    options.filter = true;                   // 过滤掉不适合的颜色（灰度、低频等）
+    options.desired = 4;
+    options.fallback_color_argb = 0xff4b1ec5;
+    options.filter = true;
 
     std::vector<material_color_utilities::Argb> rankedColors =
         material_color_utilities::RankedSuggestions(colorToCount.color_to_count, options);
 
-    // 5. 用评分最高的颜色生成 Scheme
     material_color_utilities::Hct sourceColor{ rankedColors[0] };
-    scheme = new material_color_utilities::SchemeContent(sourceColor, false);
+    createScheme(sourceColor);
 }
 
 void YT_Theme::emitScheme()

@@ -27,6 +27,8 @@ MusicWidget {
     property alias listView: listView
     YT_NavigationWidget.M_View {
         id: listView
+
+        opacity: closeHorizontal == false
         currentIndex: root.listModel.index(root.curListInfoID)
         followBackground.followItem: {
             if (listView_Menu.visible) {
@@ -61,21 +63,14 @@ MusicWidget {
             root.listModel.move(evt.source.index, index);
         }
 
-        TapHandler {
-            parent: listDelegate.m
-            acceptedButtons: Qt.LeftButton
-            onTapped: function (eventPoint, button) {
+        m.onClickedEx: function (eventPoint, button, modifiers) {
+            if (button == Qt.LeftButton) {
                 if (listView.currentIndex == listDelegate.index) {
                     listView.closeVertical = !listView.closeVertical;
                     return;
                 }
                 root.curListInfoID = listDelegate.infoId;
-            }
-        }
-        TapHandler {
-            parent: listDelegate.m
-            acceptedButtons: Qt.RightButton
-            onTapped: function (eventPoint, button) {
+            } else if (button == Qt.RightButton) {
                 listView_Menu.popup(listDelegate);
             }
         }
@@ -93,14 +88,13 @@ MusicWidget {
         Layout.fillHeight: true
 
         model: root.fileModel
+        // delegate: Item {
+        //     width: ListView.view.width
+        //     height: 50
+        //     YT_M.DebugRectangle {}
+        // }
         delegate: root.fileDelegate
         currentIndex: fileSelectionModel.currentIndex.row
-        // followBackground.followItem: view.currentItem
-        // followBackground.color: Qt.lighter(YT_Info.BackgroundColor, 1.4)
-        // followBackground.shadowColor: YT_Info.FontColor
-        // followBackground.widthPadding: YT_Info.MarginSmall
-        // followBackground.heightPadding: YT_Info.MarginSmall
-        // followBackground.enabledShadow: true
 
         Connections {
             target: root.fileModel
@@ -167,21 +161,20 @@ MusicWidget {
         Layout.fillWidth: true
         Layout.preferredHeight: 32
 
-        property real viewSize: fileHeader.width - fileHeader_Id.width - fileHeader.spacing * (fileHeader.count - 1) - leftPadding - rightPadding
+        property real viewSize: width - fileHeader_Id.width - leftPadding - rightPadding - spacing * (count - 1)
         Connections {
             target: root.fileModel
             function onItemStretchFactorChanged() {
-                fileHeader.viewSize = fileHeader.width - fileHeader_Id.width - fileHeader.spacing * (fileHeader.count - 1) - fileHeader.leftPadding - fileHeader.rightPadding;
+                fileHeader.viewSize = fileHeader.width - fileHeader_Id.width - fileHeader.leftPadding - fileHeader.rightPadding - fileHeader.spacing * (fileHeader.count - 1);
             }
         }
 
         YT_M.Button {
             id: fileHeader_Id
             text: "Id"
+            styleType: YT_M.Button.Text
             verticalPadding: 0
             horizontalPadding: 0
-            labelColor: YT_M.Theme.OnSurface
-            containerColor: YT_M.Theme.SurfaceContainer
             contentItem: Text {
                 text: fileHeader_Id.text
                 font: fileHeader_Id.font
@@ -205,8 +198,8 @@ MusicWidget {
                 }
                 return root.fileModel.titleTag + " & " + root.fileModel.selectTag[0];
             }
-            labelColor: YT_M.Theme.OnSurface
-            containerColor: YT_M.Theme.SurfaceContainer
+
+            styleType: YT_M.Button.Text
             SplitView.preferredWidth: root.fileModel.itemStretchFactor[0] * fileHeader.viewSize
             SplitView.minimumWidth: implicitWidth
 
@@ -242,8 +235,7 @@ MusicWidget {
                 required property int index
                 required property string modelData
                 text: modelData
-                labelColor: YT_M.Theme.OnSurface
-                containerColor: YT_M.Theme.SurfaceContainer
+                styleType: YT_M.Button.Text
                 SplitView.preferredWidth: root.fileModel.itemStretchFactor[index + 1] * fileHeader.viewSize
                 SplitView.minimumWidth: implicitWidth
 
@@ -280,6 +272,10 @@ MusicWidget {
             }
         }
     }
+
+    // YT_M.ListView {
+    //     id: fileScrollBar
+    // }
 
     YT_M.Button {
         id: fileFooter
@@ -333,7 +329,7 @@ MusicWidget {
 
         M_FileFooterItem {
             text: "Sort Header"
-            model: root.fileModel.headerModel
+            model: fileFooterView.visible ? root.fileModel.headerModel : null
             exSetCheckSortTag: true
             clickedFunc: function (data) {
                 root.fileModel.sortInfoIds(data);
@@ -341,15 +337,15 @@ MusicWidget {
         }
         M_FileFooterItem {
             text: "A-Z Index"
-            model: fileFooterModel.deModel
+            model: fileFooterView.visible ? fileFooterModel.deModel : null
         }
         M_FileFooterItem {
             text: "Ex Index"
-            model: fileFooterModel.exModel
+            model: fileFooterView.visible ? fileFooterModel.exModel : null
         }
         M_FileFooterItem {
             text: "Second Index " + fileFooter.text
-            model: root.fileModel.footerModelEx
+            model: fileFooterView.visible ? root.fileModel.footerModelEx : null
             clickedFunc: function (data) {
                 root.fileModel.setViewPositionEx(fileFooter.text, data);
             }
@@ -409,24 +405,13 @@ MusicWidget {
         required property int index
         required property int infoId
         required property string titleTag
+        required property string musicPath
 
         checked: fileSelectionModel.hasSelection ? fileSelectionModel.isSelected(root.fileModel.index(index, 0)) : false
         implicitWidth: ListView.view.width
         implicitHeight: 50
         verticalPadding: 0
         horizontalPadding: 0
-
-        containerColor: {
-            if (enabled == false) {
-                return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.10);
-            }
-            if (draging) {
-                return YT_M.Theme.TertiaryContainer;
-            } else if (checked) {
-                return YT_M.Theme.SecondaryContainer;
-            }
-            return YT_M.Theme.SurfaceContainer;
-        }
 
         contentItem: GridLayout {
             rowSpacing: 0
@@ -460,7 +445,7 @@ MusicWidget {
                 radius: YT_M.Theme.RadiusSmall
                 padding: YT_M.Theme.Space50
                 // opacity: 0.7
-                source: root.getMusicInfo_CoverPath(fileDelegate.infoId)
+                source: YT_Func.getFileCoverPath(fileDelegate.musicPath)
                 imageSource.sourceSize: Qt.size(50, 50)
 
                 Layout.row: 0
@@ -474,7 +459,6 @@ MusicWidget {
                 pathModel: root.pathModel
                 pathData: fileDelegate.titleTag
                 pathType: "Title"
-                color: hovered ? YT_M.Theme.Primary : fileDelegate.labelColor
 
                 Layout.row: 0
                 Layout.column: 1
@@ -484,13 +468,13 @@ MusicWidget {
             }
 
             YT_PathWidget_TagContainer {
+                readonly property string selectTagOne: root.fileModel.selectTag[0]
                 opacity: 0.7
-                model: root.fileModel.dataTag(fileDelegate.index, root.fileModel.selectTag[0])
+                model: root.fileModel.dataTag(fileDelegate.index, selectTagOne)
                 delegate: YT_PathWidget_TagItem {
                     required property string modelData
                     width: Math.min(implicitWidth, parent.width / parent.model.length) // qmllint disable missing-property
                     font: YT_M.Theme.FontBodySmall
-                    color: hovered ? YT_M.Theme.Primary : fileDelegate.labelColor
 
                     pathModel: root.pathModel
                     pathData: modelData
@@ -505,35 +489,33 @@ MusicWidget {
             }
         }
 
-        Repeater {
-            parent: fileDelegate.contentItem
+        Instantiator {
+            asynchronous: true
             model: fileHeader_List.model
             delegate: YT_PathWidget_TagContainer {
+                id: fileDelegate_TagContainer
                 required property int index
                 required property string modelData
                 readonly property Item modelItem: fileHeader_List.count ? fileHeader_List.itemAt(index) : null
 
-                model: ListModel {}
+                model: root.fileModel.dataTag(fileDelegate.index, modelData)
                 delegate: YT_PathWidget_TagItem {
-                    required property string modelCount
-                    width: Math.min(implicitWidth, parent.width / modelCount)
-                    color: hovered ? YT_M.Theme.Primary : fileDelegate.labelColor
+                    required property string modelData
+                    width: Math.min(implicitWidth, parent.width / fileDelegate_TagContainer.model.length)
+                    pathData: modelData
+                    pathType: fileDelegate_TagContainer.modelData
                     pathModel: root.pathModel
-                }
-                Component.onCompleted: {
-                    let datas = root.fileModel.dataTag(fileDelegate.index, modelData);
-                    for (let it of datas) {
-                        model.append({
-                            "pathData": it,
-                            "pathType": modelData,
-                            "modelCount": datas.length
-                        });
-                    }
                 }
 
                 leftPadding: fileHeader_Frist.leftPadding
                 Layout.column: 2 + index
                 Layout.preferredWidth: modelItem ? modelItem.width : 0
+            }
+            onObjectAdded: function (index, object) {
+                object.parent = fileDelegate.contentItem;
+            }
+            onObjectRemoved: function (index, object) {
+                object.parent = null;
             }
         }
 
@@ -583,11 +565,6 @@ MusicWidget {
     YT_M.Menu {
         id: listView_Menu
         m_isGetImplicitContentSize: true
-        y: parent ? parent.height + YT_M.Theme.Space50 : 0
-        delegate: YT_M.MenuItem {
-            verticalPadding: YT_M.Theme.Space75
-            horizontalPadding: YT_M.Theme.Space125
-        }
 
         Action {
             text: "添加列表"
@@ -633,11 +610,6 @@ MusicWidget {
     YT_M.Menu {
         id: fileView_Menu
         m_isGetImplicitContentSize: true
-        y: parent ? parent.height + YT_M.Theme.Space50 : 0
-        delegate: YT_M.MenuItem {
-            verticalPadding: YT_M.Theme.Space75
-            horizontalPadding: YT_M.Theme.Space125
-        }
 
         onClosed: parent = null
         Action {
@@ -808,18 +780,11 @@ MusicWidget {
         YT_M.MenuSeparatorGroup {}
     }
 
-    readonly property YT_NavigationWidget.M_View updateTagView: YT_NavigationWidget.M_View {
+    property alias updateTagView: updateTagView
+    YT_NavigationWidget.M_View {
         id: updateTagView
-        followBackground.followItem: hoveredItem
-
-        visible: opacity != 0.0
         opacity: closeHorizontal == false
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 180
-                easing.type: Easing.OutQuad
-            }
-        }
+        followBackground.followItem: hoveredItem
 
         model: root.updateTagModel
         // delegate: YT_NavigationWidget.M_ViewItem {
@@ -923,7 +888,7 @@ MusicWidget {
                 asynchronous: true
                 radius: YT_M.Theme.RadiusSmall
                 padding: YT_M.Theme.Space50
-                source: root.getMusicInfo_CoverPath(root.playInfoId)
+                source: YT_Func.getFileCoverPath_InfoId(root.playInfoId)
                 imageSource.sourceSize: Qt.size(50, 50)
 
                 Layout.row: 0
@@ -1006,7 +971,7 @@ MusicWidget {
                     color: YT_M.Theme.OnSurface
                 }
                 YT_M.Slider {
-                    from: 0
+                    from: 0.0
                     value: YT_AudioOutput.position
                     to: YT_AudioOutput.duration
 
@@ -1077,7 +1042,6 @@ MusicWidget {
     //                 width: parent.height
     //                 height: parent.height
     //                 readonly property string infoId: itemView.view.currentItem ? itemView.view.currentItem.infoId : ""
-    //                 source: "image://MusicImage/" + infoId
     //                 asynchronous: true
     //             }
     //             Column {

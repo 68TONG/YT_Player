@@ -11,17 +11,24 @@ SplitView {
     property color activeColor: YT.Theme.Primary
 
     property real handleSize: 2
-    property real handleScale: 0.3
+    property real handleScale: 0.4
     handle: Item {
         opacity: SplitHandle.hovered
-        implicitWidth: root.orientation == Qt.Horizontal ? root.spacing : parent.width 
-        implicitHeight: root.orientation == Qt.Vertical ? root.spacing : parent.height 
+        implicitWidth: root.orientation == Qt.Horizontal ? root.spacing : parent.width
+        implicitHeight: root.orientation == Qt.Vertical ? root.spacing : parent.height
         Rectangle {
             anchors.centerIn: parent
             implicitWidth: root.orientation == Qt.Horizontal ? root.handleSize : parent.width * root.handleScale
             implicitHeight: root.orientation == Qt.Vertical ? root.handleSize : parent.height * root.handleScale
             radius: YT.Theme.RadiusFull
             color: parent.SplitHandle.pressed ? root.activeColor : root.color
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 120
+                easing.type: Easing.OutQuad
+            }
         }
     }
 }

@@ -6,7 +6,6 @@
 #include <NE_Data.h>
 #include <NE_MediaData_Model.h>
 #include <YT_DataBase.h>
-#include <QtConcurrent>
 
 class NE_MediaInput_Model : public NE_MediaData_Model
 {

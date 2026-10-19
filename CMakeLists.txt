@@ -10,6 +10,9 @@ set(YT_Library "C:/TONG/IT")
 # set(YT_Material_DIR "C:/TONG/Code/YT_Material/build/install/lib/cmake/YT_Material")
 # find_package(YT_Material REQUIRED)
 
+set(OpenCV_DIR "C:/TONG/IT/opencv")
+find_package(OpenCV REQUIRED)
+
 find_package(HuskarUI REQUIRED)
 
 find_package(Qt6 REQUIRED COMPONENTS Sql)
@@ -28,6 +31,7 @@ include_directories(
     "YT_Database"
     "YT_External"
     "YT_NodeEditor"
+    "MainWidget/SetWidget"
     "MainWidget/PathWidget"
     "MainWidget/EditWidget"
     "MainWidget/FileWidget"
@@ -69,6 +73,7 @@ qt_add_qml_module(
         ${PROJECT_SOURCE_FILE} 
     DEPENDENCIES 
         QtQuick
+        QtQml
 )
 
 file(GLOB_RECURSE PROJECT_UI_IMAGE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "YT_Resource/Ui_Image/*")
@@ -94,8 +99,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
 
-    # WIN32_EXECUTABLE FALSE 有控制台
-    WIN32_EXECUTABLE TRUE
+    WIN32_EXECUTABLE FALSE
+    # WIN32_EXECUTABLE TRUE
     # WIN32_EXECUTABLE <CONFIG:Release>
 )
 
@@ -110,6 +115,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::QuickControls2)
 
 set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY QT_QML_IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}/YT_Material")
 target_link_libraries(${PROJECT_NAME} PRIVATE YT_Material)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
+file(COPY "${OpenCV_DIR}/x64/mingw/bin/libopencv_world510.dll" DESTINATION ${PROJECT_BINARY_DIR})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE MediaOperations)
 
@@ -127,30 +135,29 @@ target_link_libraries(${PROJECT_NAME} PRIVATE HuskarUI::Basic)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
         "${CMAKE_BINARY_DIR}/YT_PlayerData/chinese_util"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "${CMAKE_BINARY_DIR}/YT_PlayerData/Models/AnimeFace"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${YT_Library}/chinese-util-cpp/data/charsData.json"
         "${CMAKE_BINARY_DIR}/YT_PlayerData/chinese_util/"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${YT_Library}/chinese-util-cpp/data/pinyinData.json"
         "${CMAKE_BINARY_DIR}/YT_PlayerData/chinese_util/"
-    COMMENT "Copying Chinese utility data files to build directory"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/model.onnx"
+        "${CMAKE_BINARY_DIR}/YT_PlayerData/Models/AnimeFace/"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/README.md"
+        "${CMAKE_BINARY_DIR}/YT_PlayerData/Models/AnimeFace/"
+    COMMENT "Copying data and anime-face model files to build directory"
 )
 
-# # If MediaOperations exported a list of FFmpeg DLLs (Windows), copy them to the exe output after build
-# if(WIN32 AND DEFINED MediaOperationsLibrary)
-#     foreach(_ff ${MediaOperationsLibrary})
-#         if(EXISTS ${_ff})
-#             add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-#                 COMMAND ${CMAKE_COMMAND} -E copy_if_different
-#                     "${_ff}"
-#                     $<TARGET_FILE_DIR:${PROJECT_NAME}>
-#                 COMMENT "Copying FFmpeg DLL ${_ff} to output directory"
-#             )
-#         endif()
-#     endforeach()
-# endif()
-
 include(GNUInstallDirs)
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/model.onnx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/README.md"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}/YT_PlayerData/Models/AnimeFace"
+)
 install(TARGETS ${PROJECT_NAME}
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

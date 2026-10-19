@@ -16,9 +16,8 @@ FileItemModel::FileItemModel(QObject* parent)
     }
 
     {
-        selectTagModel.append(InfoTitle_Role);
-        selectTagModel.append(InfoTag_Role);
         selectTagModel.append(FileSize_Role);
+        selectTagModel.append(FileType_Role);
     }
 
     // connect(this, &FileItemModel::currentDirChanged, this, [this]() {

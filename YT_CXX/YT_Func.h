@@ -52,13 +52,19 @@ public:
 
     static int getBestMusicTag(const QList<QJsonObject>& tags, const QJsonObject& data, const QString& ex_album = {});
     static int MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QByteArray& data);
+
     static QString outputFileCover(QString file_path);
+    Q_INVOKABLE static QString getFileCoverPath(QString file_path);
+    Q_INVOKABLE static QString getFileCoverPath_InfoId(int info_id);
+    static QPointF getFileCoverVisualFocus(const QImage& source_image);
+    Q_INVOKABLE static QPointF getFileCoverVisualFocus(const QString& file_path);
+    Q_INVOKABLE static QRect getFileCoverVisualRect(double aspect_ratio, const QSize& image_size, const QPointF& focus);
+    static QImage outputFileCoverVisualRect(const QImage& source_image, const QRect& crop_rect, QString path_name = "_outputFileCoverVisualRect");
 private:
     QNetworkAccessManager network_manager;
     QHash<QThread*, QNetworkAccessManager*> network_manager_list;
 
     QJsonObject TH_CharacterTable;
-    chinese_util::Dict* Chinese_Dict = nullptr;
     QQmlEngine* qmlEngine = nullptr;
 };
 

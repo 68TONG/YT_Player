@@ -27,9 +27,6 @@ public:
     Q_INVOKABLE void addPlayMusic(const QList<int>& info_ids);
     Q_INVOKABLE void addPlayMusic_Path(const QList<QString>& path_list);
 
-    Q_INVOKABLE QString getMusicInfo_CoverPath(int info_id);
-    Q_INVOKABLE QString getMusicInfo_CoverPath(QString info_path);
-
     Q_INVOKABLE int updateMusicInfo(int info_id);
     Q_INVOKABLE int updateMusicInfo(const QString& path);
     Q_INVOKABLE int updateMusicInfo_Local();

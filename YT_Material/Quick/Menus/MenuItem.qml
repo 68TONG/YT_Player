@@ -1,12 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic as T
-import YT_Material as YT
+import YT_Material as YT_M
 
 T.MenuItem {
     id: root
 
-    property int styleType: (menu instanceof YT.Menu) ? ((menu as YT.Menu).styleType) : (YT.Menu.Standard)
+    property int styleType: (menu instanceof YT_M.Menu) ? ((menu as YT_M.Menu).styleType) : (YT_M.Menu.Standard)
 
     icon.width: iconSize
     icon.height: iconSize
@@ -14,23 +14,23 @@ T.MenuItem {
     property real iconSize: 20
     property variant iconSource
 
-    spacing: YT.Theme.Space100
-    verticalPadding: YT.Theme.Space100
-    horizontalPadding: YT.Theme.Space150
+    spacing: YT_M.Theme.Space100
+    verticalPadding: YT_M.Theme.Space100
+    horizontalPadding: YT_M.Theme.Space150
 
     arrow: Loader {
         active: root.subMenu != null
         anchors.right: root.right
         anchors.rightMargin: root.rightPadding
         anchors.verticalCenter: root.verticalCenter
-        sourceComponent: YT.Icon {
+        sourceComponent: YT_M.Icon {
             iconSize: root.iconSize
             iconColor: root.iconColor
-            iconSource: YT.IconProvider.KeyboardArrowRight
+            iconSource: YT_M.IconProvider.KeyboardArrowRight
         }
     }
 
-    indicator: YT.Icon {
+    indicator: YT_M.Icon {
         anchors.left: root.left
         anchors.leftMargin: root.leftPadding
         anchors.verticalCenter: root.verticalCenter
@@ -56,7 +56,7 @@ T.MenuItem {
         verticalAlignment: Text.AlignVCenter
     }
 
-    background: YT.ControlBackground {
+    background: YT_M.ControlBackground {
         radius: root.radius
         topLeftRadius: root.topLeftRadius
         topRightRadius: root.topRightRadius
@@ -64,7 +64,6 @@ T.MenuItem {
         bottomRightRadius: root.bottomRightRadius
 
         background.color: root.containerColor
-
         defaultLayer.color: root.containerLayerColor
         defaultLayer.visible: root.hovered || (root.subMenu && root.subMenu.visible)
 
@@ -73,73 +72,73 @@ T.MenuItem {
         diffusionLayerVisible: root.pressed
     }
 
-    property real radius: checked ? YT.Theme.RadiusMedium : YT.Theme.RadiusExtraSmall
-    property real topLeftRadius: ObjectModel.index == 0 ? YT.Theme.RadiusMedium : radius
-    property real topRightRadius: ObjectModel.index == 0 ? YT.Theme.RadiusMedium : radius
-    property real bottomLeftRadius: (menu && ObjectModel.index == menu.count - 1) ? YT.Theme.RadiusMedium : radius
-    property real bottomRightRadius: (menu && ObjectModel.index == menu.count - 1) ? YT.Theme.RadiusMedium : radius
+    property real radius: checked ? YT_M.Theme.RadiusMedium : YT_M.Theme.RadiusExtraSmall
+    property real topLeftRadius: ObjectModel.index == 0 ? YT_M.Theme.RadiusMedium : radius
+    property real topRightRadius: ObjectModel.index == 0 ? YT_M.Theme.RadiusMedium : radius
+    property real bottomLeftRadius: (menu && ObjectModel.index == menu.count - 1) ? YT_M.Theme.RadiusMedium : radius
+    property real bottomRightRadius: (menu && ObjectModel.index == menu.count - 1) ? YT_M.Theme.RadiusMedium : radius
 
     property color iconColor: {
-        if (styleType == YT.Menu.Vibrant) {
+        if (styleType == YT_M.Menu.Vibrant) {
             if (enabled == false && checked) {
-                return YT.Theme.setAlphaF(YT.Theme.OnTertiary, 0.38);
+                return YT_M.Theme.setAlphaF(YT_M.Theme.OnTertiary, 0.38);
             } else {
                 return labelColor;
             }
-        } else if (styleType == YT.Menu.Standard) {
+        } else if (styleType == YT_M.Menu.Standard) {
             if (enabled == false || checked) {
                 return labelColor;
             } else {
-                return YT.Theme.OnSurfaceVariant;
+                return YT_M.Theme.OnSurfaceVariant;
             }
         }
-        return YT.Theme.Transparent;
+        return YT_M.Theme.Transparent;
     }
     property color labelColor: {
-        if (styleType == YT.Menu.Vibrant) {
+        if (styleType == YT_M.Menu.Vibrant) {
             if (enabled == false) {
-                return YT.Theme.setAlphaF(YT.Theme.OnTertiaryContainer, 0.38);
+                return YT_M.Theme.setAlphaF(YT_M.Theme.OnTertiaryContainer, 0.38);
             } else if (checked) {
-                return YT.Theme.OnTertiary;
+                return YT_M.Theme.OnTertiary;
             } else {
-                return YT.Theme.OnTertiaryContainer;
+                return YT_M.Theme.OnTertiaryContainer;
             }
-        } else if (styleType == YT.Menu.Standard) {
+        } else if (styleType == YT_M.Menu.Standard) {
             if (enabled == false && checked) {
-                return YT.Theme.setAlphaF(YT.Theme.OnTertiaryContainer, 0.38);
+                return YT_M.Theme.setAlphaF(YT_M.Theme.OnTertiaryContainer, 0.38);
             } else if (enabled == false) {
-                return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.38);
+                return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.38);
             } else if (checked) {
-                return YT.Theme.OnTertiaryContainer;
+                return YT_M.Theme.OnTertiaryContainer;
             } else {
-                return YT.Theme.OnSurface;
+                return YT_M.Theme.OnSurface;
             }
         }
-        return YT.Theme.Transparent;
+        return YT_M.Theme.Transparent;
     }
     property color containerColor: {
-        if (styleType == YT.Menu.Vibrant) {
+        if (styleType == YT_M.Menu.Vibrant) {
             if (checked) {
-                return YT.Theme.Tertiary;
+                return YT_M.Theme.Tertiary;
             } else {
-                return YT.Theme.Transparent;
-                return YT.Theme.TertiaryContainer;
+                return YT_M.Theme.Transparent;
+                return YT_M.Theme.TertiaryContainer;
             }
-        } else if (styleType == YT.Menu.Standard) {
+        } else if (styleType == YT_M.Menu.Standard) {
             if (enabled == false && checked) {
-                return YT.Theme.setAlphaF(YT.Theme.TertiaryContainer, 0.38);
+                return YT_M.Theme.setAlphaF(YT_M.Theme.TertiaryContainer, 0.38);
             } else if (enabled == false) {
-                return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.38);
+                return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.38);
             } else if (checked) {
-                return YT.Theme.TertiaryContainer;
+                return YT_M.Theme.TertiaryContainer;
             } else {
-                return YT.Theme.Transparent;
-                return YT.Theme.SurfaceContainerLow;
+                return YT_M.Theme.Transparent;
+                return YT_M.Theme.SurfaceContainerLow;
             }
         }
-        return YT.Theme.Transparent;
+        return YT_M.Theme.Transparent;
     }
     property color containerLayerColor: {
-        return enabled ? labelColor : YT.Theme.Transparent;
+        return enabled ? labelColor : YT_M.Theme.Transparent;
     }
 }

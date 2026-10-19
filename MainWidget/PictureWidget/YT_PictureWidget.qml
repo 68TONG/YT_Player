@@ -129,7 +129,6 @@ PictureWidget {
     //             Layout.preferredHeight: 160
     //             radius: YT_Info.RadiusBig
                 
-    //             source: "image://MusicImage/" + card.imageIndex
     //             asynchronous: true
                 
     //             imageSource.onStatusChanged: {

@@ -1,4 +1,5 @@
 #include "MusicDatabase.h"
+#include <QThreadStorage>
 
 static const QStringList MusicDatabase_isMusicInfoIndex = {
     MusicFileInfo::I_MusicTag,
@@ -15,6 +16,10 @@ MusicDatabase::MusicDatabase()
     }
 }
 
+MusicDatabase::MusicDatabase(QThread* thread)
+    : DB_Database<MusicFileInfo, MusicListInfo>(thread)
+{}
+
 MusicDatabase::~MusicDatabase()
 {
     {}
@@ -24,6 +29,15 @@ MusicDatabase& MusicDatabase::obj()
 {
     static MusicDatabase obj;
     return obj;
+}
+
+MusicDatabase& MusicDatabase::forCurrentThread()
+{
+    static QThreadStorage<MusicDatabase*> databases;
+    if (databases.hasLocalData() == false) {
+        databases.setLocalData(new MusicDatabase(QThread::currentThread()));
+    }
+    return *databases.localData();
 }
 
 void MusicDatabase::initMusicFileInfo(MusicFileInfo& info, QSqlQuery& query)
@@ -42,7 +56,7 @@ QList<QString> MusicDatabase::getMusicFileInfo_TagKeys(QString list_id)
 
 QList<QString> MusicDatabase::getMusicFileInfo_TagKeys(const QList<int>& info_ids)
 {
-    TempIdsTable temp_table(info_ids);
+    TempIdsTable temp_table(db, info_ids);
     QString sql = QString(R"(
             SELECT DISTINCT json_each.key
             FROM %1 AS MF_Info
@@ -50,7 +64,7 @@ QList<QString> MusicDatabase::getMusicFileInfo_TagKeys(const QList<int>& info_id
             CROSS JOIN json_each(MF_Info.musicTag)
         )").arg(DB::MusicFileInfo).arg(temp_table.tableName);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     if (query.exec() == false) {
         qDebug() << "DB_Database getFileInfo_TagKeys failed - info_ids:" << info_ids
@@ -73,7 +87,7 @@ QList<QString> MusicDatabase::getMusicFileInfo_TagValues(QString list_id, QStrin
 
 QList<QString> MusicDatabase::getMusicFileInfo_TagValues(const QList<int>& info_ids, QString json_path)
 {
-    TempIdsTable temp_table(info_ids);
+    TempIdsTable temp_table(db, info_ids);
     QString sql = QString(R"(
             SELECT DISTINCT MF_Tag.value
             FROM %1 AS MF_Info
@@ -81,7 +95,7 @@ QList<QString> MusicDatabase::getMusicFileInfo_TagValues(const QList<int>& info_
             CROSS JOIN json_tree(MF_Info.musicTag, :json_path) AS MF_Tag ON MF_Tag.type = 'text'
         )").arg(DB::MusicFileInfo).arg(temp_table.tableName);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     query.bindValue(":json_path", json_path.isEmpty() ? "$" : "$." + json_path);
     if (query.exec() == false) {
@@ -105,7 +119,7 @@ QList<int> MusicDatabase::searchMusicFileInfo(QString list_id, QString search_ta
 
 QList<int> MusicDatabase::searchMusicFileInfo(const QList<int>& info_ids, QString search_tag, QString json_path)
 {
-    TempIdsTable temp_table(info_ids);
+    TempIdsTable temp_table(db, info_ids);
     QString sql = QString(R"(
             SELECT DISTINCT MF_Info.Id AS Id
             FROM %1 AS MF_Info
@@ -126,7 +140,7 @@ QList<int> MusicDatabase::searchMusicFileInfo(const QList<int>& info_ids, QStrin
     //     WHERE F_Tag.value GLOB S_Tag.value;
     // )").arg(DB::FileInfo).arg(temp_table.tableName);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     query.bindValue(":search_tag", search_tag);
     query.bindValue(":json_path", json_path.isEmpty() ? "$" : "$." + json_path);
@@ -151,7 +165,7 @@ MusicFileInfo MusicDatabase::getFileInfo(int info_id)
     QString sql = QString("SELECT musicTag, starLevel, playCount, addPlayCount FROM %1 WHERE Id = ?")
         .arg(DB::MusicFileInfo);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     query.addBindValue(info_id);
     if (query.exec() == false || query.next() == false) {
@@ -174,7 +188,7 @@ QVariant MusicDatabase::getFileInfo(int info_id, QString index)
         .arg(index)
         .arg(DB::MusicFileInfo);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     query.addBindValue(info_id);
     if (query.exec() == false || query.next() == false) {
@@ -194,7 +208,7 @@ QHash<int, MusicFileInfo> MusicDatabase::getFileInfo(const QList<int>& info_ids)
         QString sql = QString("SELECT musicTag, starLevel, playCount, addPlayCount FROM %1 WHERE Id = ?")
             .arg(DB::MusicFileInfo);
 
-        QSqlQuery query;
+        QSqlQuery query(db);
         query.prepare(sql);
         query.addBindValue(info.Id);
         if (query.exec() == false || query.next() == false) {
@@ -216,7 +230,7 @@ int MusicDatabase::addFileInfo(const MusicFileInfo& info)
     QString sql = QString("INSERT INTO %1 (Id, musicTag, starLevel, playCount, addPlayCount) VALUES (?, ?, ?, ?, ?)")
         .arg(DB::MusicFileInfo);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     query.addBindValue(info_id);
     query.addBindValue(QJsonDocument(info.musicTag).toJson(QJsonDocument::Indented));
@@ -241,7 +255,7 @@ int MusicDatabase::setFileInfo(int info_id, QString index, const QVariant& data)
         .arg(DB::MusicFileInfo)
         .arg(index);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     query.bindValue(":data", data);
     query.bindValue(":info_id", info_id);
@@ -260,7 +274,7 @@ int MusicDatabase::sortFileInfo(QList<int>& info_ids, QString sort_tag)
         return 0;
     }
 
-    TempIdsTable temp_table(info_ids);
+    TempIdsTable temp_table(db, info_ids);
     QString sql = QString(R"(
         SELECT 
             MF_Info.Id AS Id,
@@ -276,7 +290,7 @@ int MusicDatabase::sortFileInfo(QList<int>& info_ids, QString sort_tag)
         WHERE MF_Tag.key = :sort_tag
     )").arg(DB::MusicFileInfo).arg(temp_table.tableName);
 
-    QSqlQuery query;
+    QSqlQuery query(db);
     query.prepare(sql);
     query.bindValue(":sort_tag", sort_tag);
     if (query.exec() == false) {

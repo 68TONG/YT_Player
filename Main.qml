@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 import Qt.labs.platform
@@ -13,7 +12,7 @@ Window {
     width: 900
     height: 600
     visible: false
-    color: YT_M.Theme.SurfaceContainer
+    color: YT_M.Theme.Background
     onWidthChanged: YT_M.Theme.breakPointValue = width
 
     QWK.WindowAgent {
@@ -148,39 +147,16 @@ Window {
             id: fileWidget
         }
 
-        // YT_PictureWidget {
-        //     id: pictureWidget
-        // }
-
         NE_View {
             id: editWidget
         }
 
-        Flow {
-            id: testWidget
-            YT_M.Slider {}
-            Button {
-                text: "open Drawer"
-                onClicked: test.open()
-            }
-            YT_M.BottomSheet {
-                id: test
-                width: 640
-                height: 400
-                contentItem: Label {
-                    text: "Content goes here!"
-                    anchors.centerIn: parent
-                }
-            }
-            YT_M.FoldableView {
-                text: "Test"
+        YT_SetWidget {
+            id: setWidget
+        }
 
-                foldableView: Rectangle {
-                    implicitWidth: 100
-                    implicitHeight: 50
-                    border.color: 'red'
-                }
-            }
+        YT_TestWidget {
+            id: testWidget
         }
     }
 

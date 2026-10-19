@@ -1,15 +1,21 @@
 import QtQuick
 import QtQuick.Effects
-import YT_Material as YT
+import YT_Material as YT_M
 
 Item {
     id: root
 
     z: -true
-    visible: elevation != YT.Theme.Elevation0
+    opacity: elevation != YT_M.Theme.Elevation0
+    Behavior on opacity {
+        NumberAnimation {
+            easing: YT_M.Easing.Standard
+            duration: YT_M.Easing.Short4
+        }
+    }
 
     property real radius: 0
-    property int elevation: YT.Theme.Elevation0
+    property int elevation: YT_M.Theme.Elevation0
 
     RectangularShadow {
         anchors.fill: root
@@ -19,7 +25,7 @@ Item {
         blur: 1.2 * shadowConfig.blur
         spread: shadowConfig.spread
         opacity: shadowConfig.opacity
-        color: YT.Theme.Shadow
+        color: YT_M.Theme.Shadow
 
         readonly property variant shadowConfig: {
             switch (root.elevation) {
@@ -83,7 +89,7 @@ Item {
         blur: 1.2 * shadowConfig.blur
         spread: shadowConfig.spread
         opacity: shadowConfig.opacity
-        color: YT.Theme.Shadow
+        color: YT_M.Theme.Shadow
 
         readonly property variant shadowConfig: {
             switch (root.elevation) {

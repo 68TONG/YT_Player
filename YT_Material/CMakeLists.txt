@@ -29,7 +29,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(QWindowKit)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml ShaderTools)
 qt_standard_project_setup(REQUIRES 6.8)
 
 file(GLOB_RECURSE PROJECT_FILE 
@@ -54,6 +54,7 @@ list(FILTER PROJECT_SOURCE_FILE INCLUDE REGEX "\\.h$|\\.cpp$|\\.c$|\\.cc$")
 set(YT_MATERIAL_QML_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}")
 set(YT_MATERIAL_QML_INSTALL_DIR "${CMAKE_INSTALL_LIBDIR}/qml")
 
+set_source_files_properties("Quick/AnimationTemplate.qml" PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_library(${PROJECT_NAME} "SHARED") # SHARED STATIC
 target_compile_definitions(${PROJECT_NAME} PRIVATE YT_BUILD_SHARED)
 
@@ -71,14 +72,23 @@ qt_add_qml_module(
         ${YT_MATERIAL_QML_OUTPUT_DIR}
 )
 
-file(GLOB_RECURSE PROJECT_RESOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "Resources/*")
+file(GLOB_RECURSE PROJECT_RESOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "Resources/Fonts/*")
 qt6_add_resources(
-    ${PROJECT_NAME} "resources"
+    ${PROJECT_NAME} 
+        "resources"
     FILES
         ${PROJECT_RESOURCES} 
 )
 
-set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY QT_QML_IMPORT_PATH "${YT_MATERIAL_QML_OUTPUT_DIR}")
+file(GLOB_RECURSE PROJECT_SHADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "Resources/Shaders/*")
+qt6_add_shaders(
+    ${PROJECT_NAME} 
+        "shaders"
+    FILES
+        ${PROJECT_SHADERS} 
+)
+
+set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY QT_QML_IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}")
 target_include_directories(${PROJECT_NAME} PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Code>
     $<INSTALL_INTERFACE:include/Code>

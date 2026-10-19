@@ -58,16 +58,22 @@ public:
 protected:
     QList<int> infoIds;
     QHash<int, MusicFileInfo> infoList;
+    MusicFileInfo& getInfoList(int info_id);
+    const MusicFileInfo& getInfoList(int info_id) const;
 
     Q_PROPERTY(QString titleTag MEMBER titleTag CONSTANT)
         const QString titleTag = Media::MetaData_Title;
 
-    Q_PROPERTY(QString sortTag MEMBER sortTag NOTIFY sortTagChanged)
+    Q_PROPERTY(QString sortTag READ getSortTag WRITE setSortTag NOTIFY sortTagChanged)
         QString sortTag = {};
+    QString getSortTag() const { return sortTag; }
+    void setSortTag(const QString& data);
     Q_SIGNAL void sortTagChanged();
 
-    Q_PROPERTY(QList<QString> selectTag MEMBER selectTag NOTIFY selectTagChanged)
+    Q_PROPERTY(QList<QString> selectTag READ getSelectTag WRITE setSelectTag NOTIFY selectTagChanged)
         QList<QString> selectTag = {};
+    QList<QString> getSelectTag() const { return selectTag; }
+    void setSelectTag(const QList<QString>& data);
     Q_SIGNAL void selectTagChanged();
 
     Q_PROPERTY(QList<QString> headerModel READ getHeaderModel NOTIFY headerModelChanged)
@@ -95,6 +101,11 @@ protected:
     void updateItemStretchFactor();
 private:
     MusicWidget* const dataModel;
+    quint64 infoListGeneration = 0;
+    quint64 headerModelGeneration = 0;
+    quint64 footerModelGeneration = 0;
+    quint64 footerModelExGeneration = 0;
+    quint64 itemStretchFactorGeneration = 0;
 signals:
     void infoIdsChanged();
     void viewPositionChanged(int index);
