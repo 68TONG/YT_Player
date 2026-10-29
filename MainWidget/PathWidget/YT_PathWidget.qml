@@ -18,7 +18,6 @@ Control {
     onCurrentIndexChanged: YT.widgetIndex = currentIndex
     readonly property int rootPadding: 4
     readonly property int rootItemSize: height
-    readonly property YT.YT_WidgetInfo currentInfo: YT.widgetInfos.get(currentIndex)
 
     QtObject {
         id: historicalPath
@@ -36,18 +35,24 @@ Control {
             pathDatas.push(data);
             currentIndex = pathDatas.length - 1;
         }
+        // function setPath(data) {
+        //     isSeting = true;
+        //     let data_list = data.split('/');
+
+        //     const data_first = data_list[0];
+        //     for (let i = 0; i < YT.widgetInfos.count; i++) {
+        //         if (YT.widgetInfos.get(i).widgetName == data_first) {
+        //             YT.widgetIndex = i;
+        //             data_list.shift();
+        //             break;
+        //         }
+        //     }
+        //     currentInfo.pathModel.setSrcData(data_list);
+        //     isSeting = false;
+        // }
         function setPath(data) {
             isSeting = true;
-            let data_list = data.split('/');
-            const data_first = data_list[0];
-            for (let i = 0; i < YT.widgetInfos.count; i++) {
-                if (YT.widgetInfos.get(i).widgetName == data_first) {
-                    YT.widgetIndex = i;
-                    data_list.shift();
-                    break;
-                }
-            }
-            currentInfo.pathModel.setSrcData(data_list);
+            WidgetModel.setPath(data.split('/'));
             isSeting = false;
         }
         function setNextPath() {
@@ -63,15 +68,21 @@ Control {
             setPath(pathDatas[currentIndex]);
         }
     }
-    onCurrentInfoChanged: {
-        historicalPath.addPath(currentInfo.pathModel.getData_WidgetPath());
-    }
     Connections {
-        target: root.currentInfo.pathModel
-        function onSrcDataChanged() {
-            historicalPath.addPath(root.currentInfo.pathModel.getData_WidgetPath());
+        target: WidgetModel
+        function onPathModelDataChanged() {
+            historicalPath.addPath(WidgetModel.getPathEx());
         }
     }
+    // onCurrentInfoChanged: {
+    //     historicalPath.addPath(currentInfo.pathModel.getData_WidgetPath());
+    // }
+    // Connections {
+    //     target: root.currentInfo.pathModel
+    //     function onSrcDataChanged() {
+    //         historicalPath.addPath(root.currentInfo.pathModel.getData_WidgetPath());
+    //     }
+    // }
 
     contentItem: GridLayout {
         id: rootContent
@@ -101,17 +112,6 @@ Control {
         M_Item {
             iconSource: YT_M.IconProvider.Search
             // onClicked: searchWidget.visible ? searchWidget.close() : searchWidget.open();
-            // Rectangle {
-            //     width: +true
-            //     radius: +true
-            //     color: YT_M.Theme.OutlineVariant
-
-            //     anchors.top: parent.top
-            //     anchors.left: parent.right
-            //     anchors.bottom: parent.bottom
-            //     anchors.margins: rootContent.columnSpacing
-            //     anchors.leftMargin: rootContent.columnSpacing / 2
-            // }
         }
     }
 
@@ -133,7 +133,7 @@ Control {
                 id: pathView_WidgetItem
                 iconFill: true
                 iconColor: YT_M.Theme.Primary
-                iconSource: root.currentInfo.logoIconPath
+                iconSource: WidgetModel.data_Index(WidgetModel.widgetType, WidgetModel.LogoIconRole)
                 background: null
                 onClicked: console.log(iconSource)
             }
@@ -162,7 +162,8 @@ Control {
                     horizontalPadding: YT_M.Theme.Space125
                     onTriggered: {
                         menu.close();
-                        root.currentInfo.pathModel.setSrcData(target.index);
+                        WidgetModel.setPath(target.index);
+                        // root.currentInfo.pathModel.setSrcData(target.index);
                     }
                 }
             }
@@ -190,7 +191,8 @@ Control {
 
     Instantiator {
         id: pathView_Instantiator
-        model: root.currentInfo.pathModel.pathData
+        // model: root.currentInfo.pathModel.pathData
+        model: WidgetModel.pathModel
         delegate: root.pathView_Delegate
 
         onObjectAdded: function (index, object) {
@@ -212,7 +214,7 @@ Control {
         sizeType: YT_M.Button.Xsmall
         styleType: YT_M.Button.Text
         text: modelData
-        font.pointSize: 8
+        font: YT_M.Font.LabelSmall
         spacing: YT_M.Theme.Space0
         topInset: YT_M.Theme.Space50
         bottomInset: YT_M.Theme.Space50
@@ -243,9 +245,11 @@ Control {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onTapped: function (eventPoint, button) {
                 if (button == Qt.LeftButton) {
-                    root.currentInfo.pathModel.setSrcData(pathView_Delegate.index);
+                    WidgetModel.setPath(pathView_Delegate.index);
+                    // root.currentInfo.pathModel.setSrcData(pathView_Delegate.index);
                 } else if (button == Qt.RightButton) {
-                    pathView_Menu.model = root.currentInfo.pathModel.getSubPath(pathView_Delegate.index);
+                    pathView_Menu.model = WidgetModel.getSubPath(pathView_Delegate.index);
+                    // pathView_Menu.model = root.currentInfo.pathModel.getSubPath(pathView_Delegate.index);
                     pathView_Menu.popup(pathView_Delegate);
                 }
             }
@@ -265,7 +269,8 @@ Control {
             horizontalPadding: YT_M.Theme.Space125
             onTriggered: {
                 const index = pathView_Menu.mTarget.index;
-                root.currentInfo.pathModel.addSrcData(index, modelData);
+                WidgetModel.addPath(index, modelData);
+                // root.currentInfo.pathModel.addSrcData(index, modelData);
             }
         }
         onClosed: {
@@ -287,12 +292,13 @@ Control {
                 horizontalPadding: 0
                 background: null
 
-                inputText.font: YT_M.Theme.FontBodySmall
+                inputText.font: YT_M.Font.BodySmall
                 labelText.font.pixelSize: inputText.activeFocus ? 8 : inputText.font.pixelSize
             }
             onTriggered: {
                 const index = pathView_Menu.mTarget.index;
-                root.currentInfo.pathModel.addSrcData(index, '*' + pathView_MenuEditItemText.text + '*');
+                WidgetModel.addPath(index, '*' + pathView_MenuEditItemText.text + '*');
+                // root.currentInfo.pathModel.addSrcData(index, '*' + pathView_MenuEditItemText.text + '*');
             }
         }
 

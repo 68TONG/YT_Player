@@ -32,7 +32,7 @@ MusicWidget {
         currentIndex: root.listModel.index(root.curListInfoID)
         followBackground.followItem: {
             if (listView_Menu.visible) {
-                return listView_Menu.parent;
+                return listView_Menu.mTarget;
             } else if (dragingItem) {
                 return dragingItem;
             } else if (hoveredItem) {
@@ -209,7 +209,7 @@ MusicWidget {
                     if (button == Qt.LeftButton) {
                         root.fileModel.sortInfoIds(fileHeader_Frist.text);
                     } else if (button == Qt.RightButton) {
-                        fileHeader_Menu.m_open(fileHeader_Frist);
+                        fileHeader_Menu.openTarget(fileHeader_Frist);
                     }
                 }
             }
@@ -245,7 +245,7 @@ MusicWidget {
                         if (button == Qt.LeftButton) {
                             root.fileModel.sortInfoIds(fileHeader_ListItem.text);
                         } else if (button == Qt.RightButton) {
-                            fileHeader_Menu.m_open(fileHeader_ListItem);
+                            fileHeader_Menu.openTarget(fileHeader_ListItem);
                         }
                     }
                 }
@@ -285,7 +285,7 @@ MusicWidget {
         anchors.horizontalCenter: parent.horizontalCenter
         implicitWidth: 32
         implicitHeight: 32
-        font: YT_M.Theme.FontBodySmall
+        font: YT_M.Font.BodySmall
         styleType: YT_M.Button.Tonal
         opacity: 0.618
 
@@ -374,7 +374,7 @@ MusicWidget {
                     implicitWidth: modelData.length == 1 ? 32 : implicitContentWidth + leftPadding + rightPadding
                     implicitHeight: 32
                     text: modelData
-                    font: YT_M.Theme.FontBodySmall
+                    font: YT_M.Font.BodySmall
                     styleType: YT_M.Button.Outlined
 
                     contentItem: Text {
@@ -413,6 +413,7 @@ MusicWidget {
         verticalPadding: 0
         horizontalPadding: 0
 
+        indicator: null
         contentItem: GridLayout {
             rowSpacing: 0
             columnSpacing: fileHeader.spacing
@@ -474,7 +475,7 @@ MusicWidget {
                 delegate: YT_PathWidget_TagItem {
                     required property string modelData
                     width: Math.min(implicitWidth, parent.width / parent.model.length) // qmllint disable missing-property
-                    font: YT_M.Theme.FontBodySmall
+                    font: YT_M.Font.BodySmall
 
                     pathModel: root.pathModel
                     pathData: modelData
@@ -726,7 +727,7 @@ MusicWidget {
         id: fileHeader_Menu
         m_isGetImplicitContentSize: true
         x: 0
-        y: parent ? parent.height + YT_M.Theme.Space50 : 0
+        y: mTarget ? mTarget.height + YT_M.Theme.Space50 : 0
         implicitWidth: parent ? parent.width : 0
         model: root.fileModel.headerModel
         delegate: YT_M.MenuItem {
@@ -912,7 +913,7 @@ MusicWidget {
 
             YT_PathWidget_TagItem {
                 opacity: 0.7
-                font: YT_M.Theme.FontBodySmall
+                font: YT_M.Font.BodySmall
                 pathModel: root.pathModel
                 pathData: root.fileModel.dataTag_InfoId(root.playInfoId, "Album", 0) || ""
                 pathType: "Album"
@@ -966,7 +967,7 @@ MusicWidget {
                 anchors.horizontalCenter: parent.horizontalCenter
 
                 Text {
-                    font: YT_M.Theme.FontBodySmall
+                    font: YT_M.Font.BodySmall
                     text: YT.formatTime(YT_AudioOutput.position)
                     color: YT_M.Theme.OnSurface
                 }
@@ -990,7 +991,7 @@ MusicWidget {
                     }
                 }
                 Text {
-                    font: YT_M.Theme.FontBodySmall
+                    font: YT_M.Font.BodySmall
                     text: YT.formatTime(YT_AudioOutput.duration)
                     color: YT_M.Theme.OnSurface
                 }

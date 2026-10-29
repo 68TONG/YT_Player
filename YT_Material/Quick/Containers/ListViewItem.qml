@@ -1,24 +1,8 @@
 import QtQuick
-import QtQuick.Layouts
 import YT_Material as YT_M
 
 YT_M.AbstractButton {
     id: root
-
-    indicator: null
-    contentItem: GridLayout {
-        rowSpacing: YT_M.Theme.Space0
-        columnSpacing: root.spacing
-        Text {
-            text: root.text
-            font: root.font
-            color: root.labelColor
-            horizontalAlignment: Text.AlignLeft
-            verticalAlignment: Text.AlignVCenter
-            Layout.column: 1
-            Layout.fillWidth: true
-        }
-    }
 
     checked: isCurrentItem
     property bool isCurrentItem: ListView.isCurrentItem
@@ -26,21 +10,6 @@ YT_M.AbstractButton {
     property bool droping
     property bool expandingV
     property bool expandingH
-
-    property Item leadingItem: null
-    onLeadingItemChanged: {
-        if (leadingItem && leadingItem.parent == null && root.contentItem instanceof GridLayout) {
-            leadingItem.parent = root.contentItem;
-            leadingItem.Layout.column = 0;
-        }
-    }
-    property Item trailingItem: null
-    onTrailingItemChanged: {
-        if (trailingItem && trailingItem.parent == null && root.contentItem instanceof GridLayout) {
-            leadingItem.parent = root.contentItem;
-            leadingItem.Layout.column = 2;
-        }
-    }
 
     elevation: draging ? YT_M.Theme.Elevation5 : YT_M.Theme.ElevationNone
     spacing: YT_M.Theme.Space150

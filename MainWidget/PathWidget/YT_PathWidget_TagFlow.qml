@@ -1,7 +1,7 @@
 import QtQuick
 import YT_Material as YT_M
 
-YT_M.Flow {
+Flow {
     id: root
 
     property alias model: rootInstantiator.model

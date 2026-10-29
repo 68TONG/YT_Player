@@ -1,7 +1,7 @@
 #include "FileListModel_LinkPathInfo.h"
 
+#include <DB_DataBase.h>
 #include "FileListModel.h"
-#include "DB_DatabaseInstance.h"
 
 FileListModel_LinkPathInfo::FileListModel_LinkPathInfo(QObject* parent)
     : YT_AbstractTreeModel{ parent }
@@ -16,14 +16,14 @@ int FileListModel_LinkPathInfo::beginInsertChildNode(YT_AbstractTreeNode* node, 
 {
     return -1;
     // if (node->m_model != this) return -1;
-    // if (DB_DatabaseInstance::obj().getListInfo(data, DB_ListInfo::I_IsValid).toBool() == true) return -2;
+    // if (DB::object().getListInfo(data, DB_ListInfo::I_IsValid).toBool() == true) return -2;
     // return node->childCount();
 }
 
 void FileListModel_LinkPathInfo::endInsertChildNode(YT_AbstractTreeNode* node, QString data)
 {
     // if (node->m_model != this)  return;
-    // DB_DatabaseInstance::obj().addListInfo(DB_ListInfo(data));
+    // DB::object().addListInfo(DB_ListInfo(data));
 
     // auto child_node_ptr = std::make_unique<YT_AbstractTreeNode>(this, node);
     // auto child_node = child_node_ptr.get();
@@ -38,7 +38,7 @@ int FileListModel_LinkPathInfo::beginRemoveChildNode(YT_AbstractTreeNode* node)
     // if (node->m_model != this) return -1;
 
     // const auto& info_id = node->m_data[FileListModel::ListName_Role].toString();
-    // if (DB_DatabaseInstance::obj().deleteListInfo(info_id) < 0) return -2;
+    // if (DB::object().deleteListInfo(info_id) < 0) return -2;
 
     // return node->index();
 }
@@ -56,7 +56,7 @@ void FileListModel_LinkPathInfo::endRemoveChildNode(YT_AbstractTreeNode* node)
 void FileListModel_LinkPathInfo::loadChildNode(YT_AbstractTreeNode* node)
 {
     // if (node == &rootNode) {
-    //     const auto info_list = DB_DatabaseInstance::obj().getListInfo_NameAll();
+    //     const auto info_list = DB::object().getListInfo_NameAll();
     //     for (const auto& it : info_list) {
     //         auto child_node = std::make_unique<YT_AbstractTreeNode>(this, node);
     //         initNodeData(child_node.get(), it);
@@ -69,7 +69,7 @@ void FileListModel_LinkPathInfo::loadChildNode(YT_AbstractTreeNode* node)
 bool FileListModel_LinkPathInfo::isLoadChildNode(YT_AbstractTreeNode* node)
 {
     // if (node == &rootNode) {
-    //     return node->childCount() != DB_DatabaseInstance::obj().getListInfo_NameAll().count();
+    //     return node->childCount() != DB::object().getListInfo_NameAll().count();
     // }
     return false;
 }

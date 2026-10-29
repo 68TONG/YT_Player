@@ -1,17 +1,17 @@
 #pragma once
 
-#include <DB_DataBase.h>
-#include <MusicDataInfo.h>
-#include <QThread>
+#include "DB_DataBase.h"
+#include "MusicDataInfo.h"
 
 class MusicDatabase : public DB_Database<MusicFileInfo, MusicListInfo>
 {
+    friend MusicDatabase& DB::object<MusicDatabase>();
+    friend MusicDatabase& DB::objectForThread<MusicDatabase>();
+    
     MusicDatabase();
     explicit MusicDatabase(QThread* thread);
 public:
-    ~MusicDatabase();
-    static MusicDatabase& obj();
-    static MusicDatabase& forCurrentThread();
+    virtual ~MusicDatabase();
 
     void initMusicFileInfo(MusicFileInfo& info, QSqlQuery& query);
 

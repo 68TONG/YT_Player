@@ -1,10 +1,9 @@
 #pragma once
 
 #include "YT_Global.h"
+#include "cpp/scheme/scheme_content.h"
 #include <QColor>
 #include <QQuickItem>
-
-#include "cpp/scheme/scheme_content.h"
 
 class YT_EXPORT YT_Theme : public QObject
 {
@@ -416,60 +415,6 @@ public:
         int getSpace900() const;
     Q_SIGNAL void space900Changed();
 
-    Q_PROPERTY(QFont FontBodySmall READ getFontBodySmall NOTIFY fontBodySmallChanged)
-        QFont fontBodySmall;
-    QFont getFontBodySmall() const;
-    Q_SIGNAL void fontBodySmallChanged();
-
-    Q_PROPERTY(double FontBodySmallLineHeight READ getFontBodySmallLineHeight NOTIFY fontBodySmallLineHeightChanged)
-        double fontBodySmallLineHeight;
-    double getFontBodySmallLineHeight() const;
-    Q_SIGNAL void fontBodySmallLineHeightChanged();
-
-    Q_PROPERTY(QFont FontBodyMedium READ getFontBodyMedium NOTIFY fontBodyMediumChanged)
-        QFont fontBodyMedium;
-    QFont getFontBodyMedium() const;
-    Q_SIGNAL void fontBodyMediumChanged();
-
-    Q_PROPERTY(double FontBodyMediumLineHeight READ getFontBodyMediumLineHeight NOTIFY fontBodyMediumLineHeightChanged)
-        double fontBodyMediumLineHeight;
-    double getFontBodyMediumLineHeight() const;
-    Q_SIGNAL void fontBodyMediumLineHeightChanged();
-
-    Q_PROPERTY(QFont FontBodyLarge READ getFontBodyLarge NOTIFY fontBodyLargeChanged)
-        QFont fontBodyLarge;
-    QFont getFontBodyLarge() const;
-    Q_SIGNAL void fontBodyLargeChanged();
-
-    Q_PROPERTY(double FontBodyLargeLineHeight READ getFontBodyLargeLineHeight NOTIFY fontBodyLargeLineHeightChanged)
-        double fontBodyLargeLineHeight;
-    double getFontBodyLargeLineHeight() const;
-    Q_SIGNAL void fontBodyLargeLineHeightChanged();
-
-    Q_PROPERTY(QFont FontXsmall READ getFontXsmall NOTIFY fontXsmallChanged)
-        QFont fontXsmall;
-    QFont getFontXsmall() const;
-    Q_SIGNAL void fontXsmallChanged();
-
-    Q_PROPERTY(QFont FontSmall READ getFontSmall NOTIFY fontSmallChanged)
-        QFont fontSmall;
-    QFont getFontSmall() const;
-    Q_SIGNAL void fontSmallChanged();
-
-    Q_PROPERTY(QFont FontMedium READ getFontMedium NOTIFY fontMediumChanged)
-        QFont fontMedium;
-    QFont getFontMedium() const;
-    Q_SIGNAL void fontMediumChanged();
-
-    Q_PROPERTY(QFont FontLarge READ getFontLarge NOTIFY fontLargeChanged)
-        QFont fontLarge;
-    QFont getFontLarge() const;
-    Q_SIGNAL void fontLargeChanged();
-
-    Q_PROPERTY(QFont FontXlarge READ getFontXlarge NOTIFY fontXlargeChanged)
-        QFont fontXlarge;
-    QFont getFontXlarge() const;
-    Q_SIGNAL void fontXlargeChanged();
 public:
     enum class BreakPointType : uint16_t {
         BreakPointCompact = 600,
@@ -502,22 +447,4 @@ private:
     material_color_utilities::DynamicScheme* scheme = nullptr;
     void initScheme();
     void emitScheme();
-    void initFont(
-        QFont& font,
-        const QString& family,
-        double pointSize,
-        int weight,
-        double letterSpacing,
-
-        double wght,
-        double grad,
-        double wdth,
-        double rond,
-        double opsz,
-        double crsv,
-        double slnt,
-        double fill,
-        double hexp
-    );
-
 };

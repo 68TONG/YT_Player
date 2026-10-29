@@ -17,7 +17,7 @@ Item {
     property real collapseSize: 32 + rootControl.leftPadding + rootControl.rightPadding
     readonly property ObjectModel model: ObjectModel {}
     function updateModel() {
-        const widget = YT.widgetInfos.get(YT.widgetIndex).widget;
+        const widget = YT.currentWidget;
         const items = widget && widget.navigationWidget_Items ? widget.navigationWidget_Items : [];
 
         // model.clear();
@@ -45,7 +45,7 @@ Item {
     }
     Connections {
         target: YT
-        function onWidgetIndexChanged() {
+        function onCurrentWidgetChanged() {
             root.updateModel();
         }
     }
@@ -135,22 +135,37 @@ Item {
 
     M_View {
         id: mainView
-        currentIndex: YT.widgetIndex
-        onCurrentIndexChanged: YT.widgetIndex = currentIndex
+        currentIndex: WidgetModel.widgetType
 
-        model: YT.widgetInfos.count
+        model: WidgetModel
         delegate: M_ViewItem {
-            readonly property variant model: YT.widgetInfos.get(index)
-            m.text: model.title
-            m.iconSource: model.logoIconPath
+            required property int widgetType
+            required property string widgetTitle
+            required property variant widgetLogoIcon
+
+            m.text: widgetTitle
+            m.iconSource: widgetLogoIcon
             m.onClicked: {
                 if (ListView.view.currentIndex == index) {
                     ListView.view.closeVertical = !(ListView.view as M_View).closeVertical;
-                    return;
+                } else {
+                    WidgetModel.widgetType = widgetType;
                 }
-                YT.widgetIndex = index;
             }
         }
+        // model: YT.widgetInfos.count
+        // delegate: M_ViewItem {
+        //     readonly property variant model: YT.widgetInfos.get(index)
+        //     m.text: model.title
+        //     m.iconSource: model.logoIconPath
+        //     m.onClicked: {
+        //         if (ListView.view.currentIndex == index) {
+        //             ListView.view.closeVertical = !(ListView.view as M_View).closeVertical;
+        //             return;
+        //         }
+        //         YT.widgetIndex = index;
+        //     }
+        // }
     }
 
     component M_View: YT_M.ListView {
@@ -250,11 +265,8 @@ Item {
         dragEnabled: false
         dropEnabled: false
 
-        m.width: width
-        m.height: height
         m.implicitWidth: m.implicitContentWidth + m.leftPadding + m.rightPadding
         m.implicitHeight: 32
-
         m.checked: (ListView.view as M_View).followBackground.followItem == this
         m.radius: YT_M.Theme.RadiusSmall
         m.spacing: YT_M.Theme.Space50

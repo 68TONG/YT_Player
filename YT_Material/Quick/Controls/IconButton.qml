@@ -26,11 +26,6 @@ YT_M.Button {
         iconSize: root.iconSize
         iconColor: root.iconColor
         iconSource: root.iconSource
-
-        // Rectangle {
-        //     anchors.fill: parent
-        //     color: 'red'
-        // }
     }
 
     verticalPadding: {

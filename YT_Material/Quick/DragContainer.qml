@@ -1,4 +1,5 @@
 import QtQuick
+import YT_Material as YT_M
 
 Item {
     id: root
@@ -52,13 +53,13 @@ Item {
         enabled: dragHandler.active == false && root.dropEnabled
     }
 
-    SpringAnimation {
+    NumberAnimation {
         id: dragRetAnimation
         target: root.containerItem
         properties: "x,y"
         to: 0
-        spring: 20
-        damping: 0.9
+        duration: YT_M.Easing.Medium3
+        easing: YT_M.Easing.SpringFastEx
     }
 
     property Item targetView: parent

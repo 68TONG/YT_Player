@@ -30,7 +30,7 @@ YT_M.AbstractButton {
         return YT_M.Theme.Elevation1;
     }
 
-    // font: getFont_Button()
+    font: getFont_Button()
     radius: getRadius_Button()
     spacing: getSpacing_Button()
     implicitHeight: getImplicitHeight_Button()
@@ -44,20 +44,20 @@ YT_M.AbstractButton {
     containerColor: getContainerColor_Button()
     containerLayerColor: getContainerLayerColor_Button()
 
-    // function getFont_Button() {
-    //     if (sizeType == Button.Xsmall) {
-    //         return YT_M.Theme.FontBodySmall;
-    //     } else if (sizeType == Button.Small) {
-    //         return YT_M.Theme.FontBodySmall;
-    //     } else if (sizeType == Button.Medium) {
-    //         return YT_M.Theme.FontBodyMedium;
-    //     } else if (sizeType == Button.Large) {
-    //         return YT_M.Theme.FontBodyLarge;
-    //     } else if (sizeType == Button.Xlarge) {
-    //         return YT_M.Theme.FontBodyLarge;
-    //     }
-    //     return undefined;
-    // }
+    function getFont_Button() {
+        if (sizeType == Button.Xsmall) {
+            return YT_M.Font.LabelLarge;
+        } else if (sizeType == Button.Small) {
+            return YT_M.Font.LabelLarge;
+        } else if (sizeType == Button.Medium) {
+            return YT_M.Font.TitleMedium;
+        } else if (sizeType == Button.Large) {
+            return YT_M.Font.HeadlineSmall;
+        } else if (sizeType == Button.Xlarge) {
+            return YT_M.Font.HeadlineLarge;
+        }
+        return undefined;
+    }
     function getSpacing_Button() {
         if (sizeType == Button.Xsmall) {
             return YT_M.Theme.Space50;

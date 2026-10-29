@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic as T
-import YT_Material as YT
+import YT_Material as YT_M
 
 T.Control {
     id: root
@@ -54,8 +54,9 @@ T.Control {
             anchors.bottom: parent.bottom
 
             focus: true
-            font.pixelSize: 16
-            font.letterSpacing: 0.5
+            font: YT_M.Font.BodyLarge
+            // font.pixelSize: 16
+            // font.letterSpacing: 0.5
             color: root.inputColor
             visible: opacity != 0.0
             opacity: activeFocus
@@ -69,15 +70,15 @@ T.Control {
             // cursorDelegate: Rectangle {
             //     width: 1
             //     height: parent.height
-            //     color: YT.Theme.OnSurface
+            //     color: YT_M.Theme.OnSurface
             // }
         }
     }
 
     background: Rectangle {
         color: root.containerColor
-        topLeftRadius: YT.Theme.RadiusExtraSmall
-        topRightRadius: YT.Theme.RadiusExtraSmall
+        topLeftRadius: YT_M.Theme.RadiusExtraSmall
+        topRightRadius: YT_M.Theme.RadiusExtraSmall
 
         Rectangle {
             anchors.fill: parent
@@ -122,23 +123,23 @@ T.Control {
         }
     }
 
-    spacing: YT.Theme.Space0
-    verticalPadding: YT.Theme.Space100
-    horizontalPadding: YT.Theme.Space200
+    spacing: YT_M.Theme.Space0
+    verticalPadding: YT_M.Theme.Space100
+    horizontalPadding: YT_M.Theme.Space200
     implicitWidth: implicitContentWidth + leftPadding + rightPadding
     implicitHeight: 56
 
     property real outlineWidth: inputText.activeFocus ? 3 : 1
     property color outlineColor: {
         if (enabled == false) {
-            return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.10);
+            return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.10);
         }
         if (inputText.activeFocus) {
-            return YT.Theme.Primary;
+            return YT_M.Theme.Primary;
         } else if (hovered) {
-            return YT.Theme.OnSurface;
+            return YT_M.Theme.OnSurface;
         }
-        return YT.Theme.OnSurfaceVariant;
+        return YT_M.Theme.OnSurfaceVariant;
     }
 
     property real iconSize: 24
@@ -147,26 +148,26 @@ T.Control {
 
     property color inputColor: {
         if (enabled == false) {
-            return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.38);
+            return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.38);
         }
-        return YT.Theme.OnSurface;
+        return YT_M.Theme.OnSurface;
     }
     property color labelColor: {
         if (enabled == false) {
-            return YT.Theme.OnSurface;
+            return YT_M.Theme.OnSurface;
         }
         if (inputText.activeFocus) {
-            return YT.Theme.Primary;
+            return YT_M.Theme.Primary;
         }
-        return YT.Theme.OnSurfaceVariant;
+        return YT_M.Theme.OnSurfaceVariant;
     }
     property color containerColor: {
         if (enabled == false) {
-            return YT.Theme.setAlphaF(YT.Theme.OnSurface, 0.04);
+            return YT_M.Theme.setAlphaF(YT_M.Theme.OnSurface, 0.04);
         }
-        return YT.Theme.SurfaceContainerHighest;
+        return YT_M.Theme.SurfaceContainerHighest;
     }
-    property color containerLayerColor: YT.Theme.OnSurface
+    property color containerLayerColor: YT_M.Theme.OnSurface
 
     // property font supportingTextFont: Qt.font({
     //     family: "Roboto",

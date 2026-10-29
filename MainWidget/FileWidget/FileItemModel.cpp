@@ -1,7 +1,7 @@
 #include "FileItemModel.h"
 
+#include <DB_DataBase.h>
 #include "FileListModel.h"
-#include "DB_DatabaseInstance.h"
 
 FileItemModel::FileItemModel(QObject* parent)
     : QAbstractItemModel(parent)
@@ -126,7 +126,7 @@ Q_INVOKABLE void FileItemModel::setInfoIds(const QList<int>& info_ids)
 {
     this->beginResetModel();
     infoIds = info_ids;
-    infoList = DB_DatabaseInstance::obj().getFileInfo(infoIds);
+    infoList = DB::object().getFileInfo(infoIds);
     for (auto& it : infoList) {
         it.fileInfo = QFileInfo(it.filePath);
     }
@@ -137,7 +137,7 @@ Q_INVOKABLE void FileItemModel::setInfoIds(const QList<int>& info_ids)
 Q_INVOKABLE void FileItemModel::searchInfoIds(QString search_tag)
 {
     this->beginResetModel();
-    infoIds = DB_DatabaseInstance::obj().searchFileInfo(infoIds, search_tag);
+    infoIds = DB::object().searchFileInfo(infoIds, search_tag);
     this->endResetModel();
 }
 

@@ -54,6 +54,7 @@ public:
     static int MediaEncoder_Write_YT_Data(MediaEncoder& coder, const QByteArray& data);
 
     static QString outputFileCover(QString file_path);
+    Q_INVOKABLE static QVariantMap getFileCoverInfo(QString file_path);
     Q_INVOKABLE static QString getFileCoverPath(QString file_path);
     Q_INVOKABLE static QString getFileCoverPath_InfoId(int info_id);
     static QPointF getFileCoverVisualFocus(const QImage& source_image);

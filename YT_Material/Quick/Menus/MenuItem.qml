@@ -6,7 +6,7 @@ import YT_Material as YT_M
 T.MenuItem {
     id: root
 
-    property int styleType: (menu instanceof YT_M.Menu) ? ((menu as YT_M.Menu).styleType) : (YT_M.Menu.Standard)
+    property int styleType: (menu && menu instanceof YT_M.Menu) ? ((menu as YT_M.Menu).styleType) : (YT_M.Menu.Standard)
 
     icon.width: iconSize
     icon.height: iconSize
@@ -56,22 +56,21 @@ T.MenuItem {
         verticalAlignment: Text.AlignVCenter
     }
 
-    background: YT_M.ControlBackground {
-        radius: root.radius
+    background: YT_M.Background {
         topLeftRadius: root.topLeftRadius
         topRightRadius: root.topRightRadius
         bottomLeftRadius: root.bottomLeftRadius
         bottomRightRadius: root.bottomRightRadius
 
-        background.color: root.containerColor
-        defaultLayer.color: root.containerLayerColor
-        defaultLayer.visible: root.hovered || (root.subMenu && root.subMenu.visible)
+        containerColor: root.containerColor
+        hoveredColor: root.hovered || (root.subMenu && root.subMenu.visible) ? root.containerLayerColor : YT_M.Theme.Transparent
 
         diffusionLayerColor: root.containerLayerColor
         diffusionLayerPoint: mapFromItem(root, root.pressX, root.pressY)
         diffusionLayerVisible: root.pressed
     }
 
+    font: YT_M.Font.LabelLarge
     property real radius: checked ? YT_M.Theme.RadiusMedium : YT_M.Theme.RadiusExtraSmall
     property real topLeftRadius: ObjectModel.index == 0 ? YT_M.Theme.RadiusMedium : radius
     property real topRightRadius: ObjectModel.index == 0 ? YT_M.Theme.RadiusMedium : radius

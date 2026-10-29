@@ -129,36 +129,68 @@ Window {
         setExpanded: mainExtraLargeLayout.visible
     }
 
-    SwipeView {
+    Loader {
         id: mainWidget
-        currentIndex: YT.widgetIndex
-        onCurrentIndexChanged: YT.widgetIndex = currentIndex
-        onCurrentItemChanged: currentItem.forceActiveFocus()
-
         clip: true
-        spacing: YT_Info.Spacing
-        interactive: currentItem != editWidget
-
-        YT_MusicWidget {
-            id: musicWidget
+        sourceComponent: sourceList[WidgetModel.widgetType]
+        readonly property list<Component> sourceList: [fileWidget, musicWidget, nullWidget, nullWidget, nullWidget, nullWidget, setWidget, testWidget]
+        Component {
+            id: nullWidget
+            Item {}
         }
-
-        YT_FileWidget {
+        Component {
             id: fileWidget
+            YT_FileWidget {}
         }
-
-        NE_View {
-            id: editWidget
+        Component {
+            id: musicWidget
+            YT_MusicWidget {}
         }
-
-        YT_SetWidget {
+        Component {
             id: setWidget
+            YT_SetWidget {}
         }
-
-        YT_TestWidget {
+        Component {
             id: testWidget
+            YT_TestWidget {}
+        }
+        Binding {
+            target: YT
+            property: "currentWidget"
+            value: mainWidget.item
         }
     }
+
+    // SwipeView {
+    //     id: mainWidget
+    //     currentIndex: YT.widgetIndex
+    //     onCurrentIndexChanged: YT.widgetIndex = currentIndex
+    //     onCurrentItemChanged: currentItem.forceActiveFocus()
+
+    //     clip: true
+    //     spacing: YT_Info.Spacing
+    //     interactive: currentItem != editWidget
+
+    //     YT_MusicWidget {
+    //         id: musicWidget
+    //     }
+
+    //     YT_FileWidget {
+    //         id: fileWidget
+    //     }
+
+    //     NE_View {
+    //         id: editWidget
+    //     }
+
+    //     YT_SetWidget {
+    //         id: setWidget
+    //     }
+
+    //     YT_TestWidget {
+    //         id: testWidget
+    //     }
+    // }
 
     SystemTrayIcon {
         visible: true

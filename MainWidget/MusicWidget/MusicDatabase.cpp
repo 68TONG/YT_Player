@@ -1,5 +1,4 @@
 #include "MusicDatabase.h"
-#include <QThreadStorage>
 
 static const QStringList MusicDatabase_isMusicInfoIndex = {
     MusicFileInfo::I_MusicTag,
@@ -23,21 +22,6 @@ MusicDatabase::MusicDatabase(QThread* thread)
 MusicDatabase::~MusicDatabase()
 {
     {}
-}
-
-MusicDatabase& MusicDatabase::obj()
-{
-    static MusicDatabase obj;
-    return obj;
-}
-
-MusicDatabase& MusicDatabase::forCurrentThread()
-{
-    static QThreadStorage<MusicDatabase*> databases;
-    if (databases.hasLocalData() == false) {
-        databases.setLocalData(new MusicDatabase(QThread::currentThread()));
-    }
-    return *databases.localData();
 }
 
 void MusicDatabase::initMusicFileInfo(MusicFileInfo& info, QSqlQuery& query)

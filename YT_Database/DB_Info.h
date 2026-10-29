@@ -13,6 +13,8 @@
 #include <QJsonDocument>
 #include <QJsonParseError>
 
+#include <QSharedPointer>
+
 namespace DB {
     inline const QString FileInfo = "FileInfo";
     inline const QString FileListInfo = "FileListInfo";
@@ -118,10 +120,16 @@ namespace DB {
     }
 }
 
-class DB_Info {};
+class DB_Info {
+protected:
+    DB_Info() = default;
+    virtual ~DB_Info() = default;
+};
+
 class DB_FileInfo : public DB_Info
 {
 public:
+    using Ptr = QSharedPointer<DB_FileInfo>;
     DB_FileInfo() {}
     DB_FileInfo(QString filePath)
         : filePath(filePath), fileInfo(filePath)

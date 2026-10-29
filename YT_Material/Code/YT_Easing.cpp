@@ -1,7 +1,6 @@
 #include "YT_Easing.h"
 
 #include <QQmlEngine>
-#include <QJSEngine>
 
 YT_Easing::YT_Easing(QObject* parent)
     : QObject{ parent }
@@ -69,7 +68,7 @@ YT_Easing& YT_Easing::obj()
 
 YT_Easing* YT_Easing::create(QQmlEngine*, QJSEngine*)
 {
-    QJSEngine::setObjectOwnership(&obj(), QJSEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(&obj(), QQmlEngine::CppOwnership);
     return &obj();
 }
 

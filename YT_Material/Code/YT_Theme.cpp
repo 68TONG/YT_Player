@@ -6,7 +6,6 @@
 #include <QImage>
 #include <QFile>
 #include <QTime>
-#include <QFontDatabase>
 
 #include "cpp/quantize/celebi.h"
 #include "cpp/score/score.h"
@@ -26,77 +25,6 @@ YT_Theme::YT_Theme(QObject* parent)
 {
     themeSource = "#6750A4";
     initScheme();
-
-    {
-        int fontId = QFontDatabase::addApplicationFont(":/Resources/Fonts/MaterialSymbols.ttf");
-        if (fontId >= 0) {
-            QFontDatabase::applicationFontFamilies(fontId);
-        }
-        fontId = QFontDatabase::addApplicationFont(":/Resources/Fonts/Roboto-VariableFont.ttf");
-        if (fontId >= 0) {
-            QFontDatabase::applicationFontFamilies(fontId);
-        }
-
-        initFont(
-            fontBodySmall,
-            QStringLiteral("Roboto"),
-            12.0,
-            400,
-            0.1,
-            400.0,
-            0.0,
-            100.0,
-            0.0,
-            12.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-        );
-        fontBodySmallLineHeight = 16.0;
-
-        initFont(
-            fontBodyMedium,
-            QStringLiteral("Roboto"),
-            14.0,
-            400,
-            0.0,
-            400.0,
-            0.0,
-            100.0,
-            0.0,
-            14.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-        );
-        fontBodyMediumLineHeight = 20.0;
-
-        initFont(
-            fontBodyLarge,
-            QStringLiteral("Roboto"),
-            16.0,
-            400,
-            0.0,
-            400.0,
-            0.0,
-            100.0,
-            0.0,
-            16.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0
-        );
-        fontBodyLargeLineHeight = 24.0;
-    }
-
-    fontXsmall = QFont("Roboto", 11, 500, false);
-    fontSmall = QFont("Roboto", 11, 500, false);
-    fontMedium = QFont("Roboto", 12, 500, false);
-    fontLarge = QFont("Roboto", 14, 400, false);
-    fontXlarge = QFont("Roboto", 14, 400, false);
 
     connect(this, &YT_Theme::breakPointValueChanged, this, [this]() {
         auto type = static_cast<uint16_t>(BreakPointType::BreakPointExtraLarge);
@@ -126,7 +54,7 @@ YT_Theme& YT_Theme::obj()
 
 YT_Theme* YT_Theme::create(QQmlEngine*, QJSEngine*)
 {
-    QJSEngine::setObjectOwnership(&obj(), QJSEngine::CppOwnership);
+    QQmlEngine::setObjectOwnership(&obj(), QQmlEngine::CppOwnership);
     return &obj();
 }
 
@@ -657,61 +585,6 @@ int YT_Theme::getSpace900() const
 }
 
 
-QFont YT_Theme::getFontBodySmall() const
-{
-    return fontBodySmall;
-}
-
-double YT_Theme::getFontBodySmallLineHeight() const
-{
-    return fontBodySmallLineHeight;
-}
-
-QFont YT_Theme::getFontBodyMedium() const
-{
-    return fontBodyMedium;
-}
-
-double YT_Theme::getFontBodyMediumLineHeight() const
-{
-    return fontBodyMediumLineHeight;
-}
-
-QFont YT_Theme::getFontBodyLarge() const
-{
-    return fontBodyLarge;
-}
-
-double YT_Theme::getFontBodyLargeLineHeight() const
-{
-    return fontBodyLargeLineHeight;
-}
-
-QFont YT_Theme::getFontXsmall() const
-{
-    return fontXsmall;
-}
-
-QFont YT_Theme::getFontSmall() const
-{
-    return fontSmall;
-}
-
-QFont YT_Theme::getFontMedium() const
-{
-    return fontMedium;
-}
-
-QFont YT_Theme::getFontLarge() const
-{
-    return fontLarge;
-}
-
-QFont YT_Theme::getFontXlarge() const
-{
-    return fontXlarge;
-}
-
 void YT_Theme::initScheme()
 {
     if (scheme) {
@@ -863,22 +736,4 @@ void YT_Theme::emitScheme()
 uint16_t YT_Theme::getBreakPointType() const
 {
     return breakPointType;
-}
-
-void YT_Theme::initFont(QFont& font, const QString& family, double pointSize, int weight, double letterSpacing, double wght, double grad, double wdth, double rond, double opsz, double crsv, double slnt, double fill, double hexp)
-{
-    font.setFamily(family);
-    font.setPixelSize(pointSize);
-    font.setWeight(static_cast<QFont::Weight>(weight));
-    font.setLetterSpacing(QFont::AbsoluteSpacing, letterSpacing);
-
-    font.setVariableAxis(QFont::Tag("wght"), wght);
-    font.setVariableAxis(QFont::Tag("GRAD"), grad);
-    font.setVariableAxis(QFont::Tag("wdth"), wdth);
-    font.setVariableAxis(QFont::Tag("ROND"), rond);
-    font.setVariableAxis(QFont::Tag("opsz"), opsz);
-    font.setVariableAxis(QFont::Tag("CRSV"), crsv);
-    font.setVariableAxis(QFont::Tag("slnt"), slnt);
-    font.setVariableAxis(QFont::Tag("FILL"), fill);
-    font.setVariableAxis(QFont::Tag("HEXP"), hexp);
 }

@@ -1,6 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import YT_Material as YT
+import YT_Material as YT_M
 
 FloatingActionButton {
     id: root
@@ -18,7 +18,7 @@ FloatingActionButton {
             verticalAlignment: Text.AlignVCenter
         }
     }
-    contentItem: YT.Icon {
+    contentItem: YT_M.Icon {
         iconSize: root.iconSize
         iconSource: root.iconSource
         iconColor: root.labelColor
@@ -27,21 +27,21 @@ FloatingActionButton {
 
     font: {
         if (sizeType == FloatingActionButton.Default) {
-            YT.Theme.FontSmall;
+            YT_M.Font.TitleMedium;
         } else if (sizeType == FloatingActionButton.Medium) {
-            return YT.Theme.FontMedium;
+            return YT_M.Font.TitleLarge;
         } else if (sizeType == FloatingActionButton.Large) {
-            return YT.Theme.FontLarge;
+            return YT_M.Font.HeadlineSmall;
         }
         return undefined;
     }
     spacing: {
         if (sizeType == FloatingActionButton.Default) {
-            return YT.Theme.Space100;
+            return YT_M.Theme.Space100;
         } else if (sizeType == FloatingActionButton.Medium) {
-            return YT.Theme.Space150;
+            return YT_M.Theme.Space150;
         } else if (sizeType == FloatingActionButton.Large) {
-            return YT.Theme.Space200;
+            return YT_M.Theme.Space200;
         }
         return 0;
     }

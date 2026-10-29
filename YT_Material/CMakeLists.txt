@@ -32,7 +32,7 @@ FetchContent_MakeAvailable(QWindowKit)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Quick Qml ShaderTools)
 qt_standard_project_setup(REQUIRES 6.8)
 
-file(GLOB_RECURSE PROJECT_FILE 
+file(GLOB_RECURSE PROJECT_FILE CONFIGURE_DEPENDS
     "ExternalCode/*"
     "Quick/*"
     "Code/*"

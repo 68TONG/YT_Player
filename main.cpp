@@ -5,6 +5,7 @@
 #include <QFontDatabase>
 #include <QLoggingCategory>
 #include <QWKQuick/qwkquickglobal.h>
+#include <YT_Font.h>
 #include <YT_Theme.h>
 #include <YT_Info.h>
 #include <YT_Func.h>
@@ -22,7 +23,7 @@ int main(int argc, char* argv[])
     QGuiApplication app(argc, argv);
     {
         QQuickStyle::setStyle("Basic");
-        app.setFont(YT_Theme::obj().fontBodyMedium);
+        app.setFont(YT_Font::obj().bodyMedium);
         YT_Func::getObject();
         YT_Info::getObject();
     }

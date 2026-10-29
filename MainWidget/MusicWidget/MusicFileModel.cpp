@@ -120,7 +120,7 @@ Q_INVOKABLE void MusicFileModel::updateInfo(const int& info_id)
     const int index = infoIds.indexOf(info_id);
     if (index < 0) return;
 
-    infoList[info_id] = MusicDatabase::obj().getFileInfo(info_id);
+    infoList[info_id] = DB::object<MusicDatabase>().getFileInfo(info_id);
     const auto model_index = this->index(index, 0, {});
     emit this->dataChanged(model_index, model_index);
 }
@@ -136,7 +136,7 @@ Q_INVOKABLE void MusicFileModel::setInfoIds(const QString& info_id)
 {
     YT_TimeDebugger de_(QStringLiteral("MusicFileModel All"));
     YT_TimeDebugger de(QStringLiteral("MusicFileModel"));
-    const auto&& info = MusicDatabase::obj().getListInfo(info_id);
+    const auto&& info = DB::object<MusicDatabase>().getListInfo(info_id);
     de << "getListInfo";
 
     setSelectTag(info.selectTag);
@@ -153,7 +153,7 @@ Q_INVOKABLE void MusicFileModel::setInfoIds(const QList<int>& info_ids)
 {
     this->beginResetModel();
     infoIds = info_ids;
-    infoList = MusicDatabase::obj().getFileInfo(infoIds.mid(0, 12));
+    infoList = DB::object<MusicDatabase>().getFileInfo(infoIds.mid(0, 12));
     this->endResetModel();
     emit infoIdsChanged();
 
@@ -171,7 +171,7 @@ Q_INVOKABLE void MusicFileModel::setInfoIds(const QList<int>& info_ids)
         infoList = loadedInfoList;
         });
     watcher->setFuture(QtConcurrent::run([ids = infoIds]() {
-        return MusicDatabase::forCurrentThread().getFileInfo(ids);
+        return DB::objectForThread<MusicDatabase>().getFileInfo(ids);
         }));
 }
 
@@ -184,11 +184,11 @@ Q_INVOKABLE void MusicFileModel::sortInfoIds(QString sort_data)
     ++infoListGeneration;
     this->beginResetModel();
     if (dataModel->pathModel.srcData.count() == +true && info_id.isEmpty() == false) {
-        MusicDatabase::obj().sortFileInfo(info_id, sort_data);
-        infoIds = MusicDatabase::obj().getListInfo_FileIds(info_id);
+        DB::object<MusicDatabase>().sortFileInfo(info_id, sort_data);
+        infoIds = DB::object<MusicDatabase>().getListInfo_FileIds(info_id);
     }
     else {
-        MusicDatabase::obj().sortFileInfo(infoIds, sort_data);
+        DB::object<MusicDatabase>().sortFileInfo(infoIds, sort_data);
     }
     this->endResetModel();
     emit infoIdsChanged();
@@ -202,7 +202,7 @@ Q_INVOKABLE void MusicFileModel::searchInfoIds(QString search_tag, QString heade
 {
     ++infoListGeneration;
     this->beginResetModel();
-    infoIds = MusicDatabase::obj().searchMusicFileInfo(infoIds, search_tag, header_tag);
+    infoIds = DB::object<MusicDatabase>().searchMusicFileInfo(infoIds, search_tag, header_tag);
     this->endResetModel();
     emit infoIdsChanged();
 }
@@ -279,7 +279,7 @@ MusicFileInfo& MusicFileModel::getInfoList(int info_id)
     auto it = infoList.find(info_id);
     if (it != infoList.end()) return *it;
 
-    return *infoList.insert(info_id, MusicDatabase::obj().getFileInfo(info_id));
+    return *infoList.insert(info_id, DB::object<MusicDatabase>().getFileInfo(info_id));
 }
 
 const MusicFileInfo& MusicFileModel::getInfoList(int info_id) const
@@ -318,7 +318,7 @@ void MusicFileModel::setSelectTag(const QList<QString>& data)
 
     auto info_id = this->dataModel->getCurListInfoID();
     auto info_data = DB::listToJsonByte<QString>(data);
-    MusicDatabase::obj().setListInfo(info_id, DB_ListInfo::I_SelectTag, info_data);
+    DB::object<MusicDatabase>().setListInfo(info_id, DB_ListInfo::I_SelectTag, info_data);
 }
 
 void MusicFileModel::updateHeaderModel()
@@ -337,7 +337,7 @@ void MusicFileModel::updateHeaderModel()
         });
     watcher->setFuture(QtConcurrent::run([ids = infoIds]() {
         // YT_TimeDebugger de("headerModelChanged QtConcurrent");
-        auto headerModel = MusicDatabase::forCurrentThread().getMusicFileInfo_TagKeys(ids);
+        auto headerModel = DB::objectForThread<MusicDatabase>().getMusicFileInfo_TagKeys(ids);
         headerModel.removeIf([](const QString& data) {
             return data.contains("YT_Lyrics_Url") || data.contains("YT_Cover_Url");
             });
@@ -369,7 +369,7 @@ void MusicFileModel::updateFooterModel()
             footerModel += QString(c);
 
         if (sortTag.isEmpty() == false) {
-            const auto tagValues = MusicDatabase::forCurrentThread().getMusicFileInfo_TagValues(ids, sortTag);
+            const auto tagValues = DB::objectForThread<MusicDatabase>().getMusicFileInfo_TagValues(ids, sortTag);
             auto chineseDict = YT_Func::getObject().getChinese_Dict();
             for (const auto& data : tagValues) {
                 if (data.isEmpty())
@@ -412,7 +412,7 @@ void MusicFileModel::updateFooterModelEx(int index, QString data)
         const auto appendInfoAt = [&ids, &infos, &footerModelEx, sortTag, data](int i) {
             const auto info_id = ids[i];
             if (infos.find(info_id) == infos.end()) {
-                infos.insert(info_id, MusicDatabase::forCurrentThread().getFileInfo(info_id));
+                infos.insert(info_id, DB::objectForThread<MusicDatabase>().getFileInfo(info_id));
             }
 
             const auto info = infos[info_id];
@@ -466,7 +466,7 @@ void MusicFileModel::updateItemStretchFactor()
         const QFontMetrics fontMetrics(font);
         auto getTagWidth = [&fontMetrics, &ids](const QString& tag) {
             int maxWidth = fontMetrics.boundingRect(tag).width();
-            const auto tagValues = MusicDatabase::forCurrentThread().getMusicFileInfo_TagValues(ids, tag);
+            const auto tagValues = DB::objectForThread<MusicDatabase>().getMusicFileInfo_TagValues(ids, tag);
             for (const auto& value : tagValues)
                 maxWidth = qMax(maxWidth, fontMetrics.boundingRect(value).width());
             return maxWidth;

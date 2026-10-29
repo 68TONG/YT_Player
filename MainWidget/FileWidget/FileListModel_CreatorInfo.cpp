@@ -1,7 +1,7 @@
 #include "FileListModel_CreatorInfo.h"
 
+#include <DB_DataBase.h>
 #include "FileListModel.h"
-#include "DB_DatabaseInstance.h"
 
 FileListModel_CreatorInfo::FileListModel_CreatorInfo(QObject* parent)
     : YT_AbstractTreeModel(parent)
@@ -25,7 +25,7 @@ void FileListModel_CreatorInfo::loadChildNode(YT_AbstractTreeNode* node)
         };
 
     if (node == &rootNode) {
-        const auto info_list = DB_DatabaseInstance::obj().getCreatorInfo_NameAll();
+        const auto info_list = DB::object().getCreatorInfo_NameAll();
         for (const auto& it : info_list) {
             auto child_node = std::make_unique<YT_AbstractTreeNode>(this, node);
             initDataFunc(child_node.get(), it);
@@ -39,7 +39,7 @@ void FileListModel_CreatorInfo::loadChildNode(YT_AbstractTreeNode* node)
         return;
     }
 
-    const auto tag_values = DB_DatabaseInstance::obj().getFileInfo_TagValues_CreatorId(info_id);
+    const auto tag_values = DB::object().getFileInfo_TagValues_CreatorId(info_id);
     for (const auto& tag_value : tag_values) {
         auto child_node = std::make_unique<YT_AbstractTreeNode>(this, node);
         initDataFunc(child_node.get(), tag_value);
@@ -50,7 +50,7 @@ void FileListModel_CreatorInfo::loadChildNode(YT_AbstractTreeNode* node)
 bool FileListModel_CreatorInfo::isLoadChildNode(YT_AbstractTreeNode* node)
 {
     if (node == &rootNode) {
-        return node->childCount() != DB_DatabaseInstance::obj().getCreatorInfo_NameAll().count();
+        return node->childCount() != DB::object().getCreatorInfo_NameAll().count();
     }
 
     if (node->childCount() > 0) {
@@ -62,5 +62,5 @@ bool FileListModel_CreatorInfo::isLoadChildNode(YT_AbstractTreeNode* node)
         return false;
     }
 
-    return DB_DatabaseInstance::obj().getFileInfo_TagValues_CreatorId(info_id).isEmpty() == false;
+    return DB::object().getFileInfo_TagValues_CreatorId(info_id).isEmpty() == false;
 }

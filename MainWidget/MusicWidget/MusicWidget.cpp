@@ -11,13 +11,13 @@ MusicWidget::MusicWidget(QQuickItem* parent)
     curListInfoID = listModel.infoIds.first();
     fileModel.setInfoIds(curListInfoID);
     pathModel.initData(curListInfoID);
-    playModel = MusicDatabase::obj().getListInfo_FileIds(MusicDatabase::playListInfo_Name);
+    playModel = DB::object<MusicDatabase>().getListInfo_FileIds(MusicDatabase::playListInfo_Name);
 
     connect(&pathModel, &YT_PathWidgetModel::srcDataChanged, this, [this]() {
         if (pathModel.isSetDataing) return;
         if (pathModel.srcData.isEmpty()) return;
         const auto info_id = pathModel.srcData[0];
-        if (MusicDatabase::obj().getListInfo(info_id).name.isEmpty())
+        if (DB::object<MusicDatabase>().getListInfo(info_id).name.isEmpty())
             return;
 
         pathModel.isSetDataing = true;
@@ -32,8 +32,8 @@ MusicWidget::MusicWidget(QQuickItem* parent)
         if (status == YT_AudioOutput::EndOfMedia) {
             int info_id = getPlayInfoId();
             if (info_id >= 0) {
-                int data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_PlayCount).toInt();
-                MusicDatabase::obj().setFileInfo(info_id, MusicFileInfo::I_PlayCount, data + 1);
+                int data = DB::object<MusicDatabase>().getFileInfo(info_id, MusicFileInfo::I_PlayCount).toInt();
+                DB::object<MusicDatabase>().setFileInfo(info_id, MusicFileInfo::I_PlayCount, data + 1);
                 fileModel.updateInfo(info_id);
             }
             playNextMusic();
@@ -78,8 +78,8 @@ Q_INVOKABLE void MusicWidget::playMusic(int data)
     }
     emit playModelChanged();
 
-    MusicDatabase::obj().setListInfo(MusicDatabase::playListInfo_Name, MusicListInfo::I_SelectTag, DB::listToJsonByte<QString>(fileModel.selectTag));
-    MusicDatabase::obj().setListInfo_FileIds(MusicDatabase::playListInfo_Name, playModel);
+    DB::object<MusicDatabase>().setListInfo(MusicDatabase::playListInfo_Name, MusicListInfo::I_SelectTag, DB::listToJsonByte<QString>(fileModel.selectTag));
+    DB::object<MusicDatabase>().setListInfo_FileIds(MusicDatabase::playListInfo_Name, playModel);
     playMusic_PlayIndex(index);
 }
 
@@ -88,7 +88,7 @@ Q_INVOKABLE void MusicWidget::playMusic_Path(QString data)
     YT_AudioOutput::getObject().setSource(data);
     YT_AudioOutput::getObject().play();
 
-    const int infoId = MusicDatabase::obj().getFileInfo_Id(data);
+    const int infoId = DB::object<MusicDatabase>().getFileInfo_Id(data);
     playIndex = playModel.indexOf(infoId);
     emit playIndexChanged();
 
@@ -97,12 +97,12 @@ Q_INVOKABLE void MusicWidget::playMusic_Path(QString data)
 
 Q_INVOKABLE void MusicWidget::playMusic_InfoId(int data)
 {
-    playMusic_Path(MusicDatabase::obj().getFileInfo(data, DB_FileInfo::I_FilePath).toString());
+    playMusic_Path(DB::object<MusicDatabase>().getFileInfo(data, DB_FileInfo::I_FilePath).toString());
 }
 
 Q_INVOKABLE void MusicWidget::playMusic_PlayIndex(int data)
 {
-    playMusic_Path(MusicDatabase::obj().getFileInfo(playModel.value(data, -1), DB_FileInfo::I_FilePath).toString());
+    playMusic_Path(DB::object<MusicDatabase>().getFileInfo(playModel.value(data, -1), DB_FileInfo::I_FilePath).toString());
 }
 
 Q_INVOKABLE void MusicWidget::playNextMusic()
@@ -133,13 +133,13 @@ void MusicWidget::addPlayMusic(const QList<int>& info_ids)
     std::copy(info_ids.begin(), info_ids.end(), playModel.begin() + insert_index);
 
     for (const auto& info_id : info_ids) {
-        int data = MusicDatabase::obj().getFileInfo(info_id, MusicFileInfo::I_AddPlayCount).toInt();
-        MusicDatabase::obj().setFileInfo(info_id, MusicFileInfo::I_AddPlayCount, data + 1);
+        int data = DB::object<MusicDatabase>().getFileInfo(info_id, MusicFileInfo::I_AddPlayCount).toInt();
+        DB::object<MusicDatabase>().setFileInfo(info_id, MusicFileInfo::I_AddPlayCount, data + 1);
         fileModel.updateInfo(info_id);
     }
     emit playModelChanged();
 
-    MusicDatabase::obj().setListInfo_FileIds(MusicDatabase::playListInfo_Name, playModel);
+    DB::object<MusicDatabase>().setListInfo_FileIds(MusicDatabase::playListInfo_Name, playModel);
     if (getCurListInfoID() == MusicDatabase::playListInfo_Name) {
         fileModel.setInfoIds(playModel);
     }
@@ -149,7 +149,7 @@ void MusicWidget::addPlayMusic_Path(const QList<QString>& path_list)
 {
     QList<int> info_ids;
     for (auto it : path_list) {
-        int info_id = MusicDatabase::obj().addFileInfo(it);
+        int info_id = DB::object<MusicDatabase>().addFileInfo(it);
         if (info_id >= 0) info_ids += info_id;
     }
     addPlayMusic(info_ids);
@@ -159,7 +159,7 @@ Q_INVOKABLE int MusicWidget::updateMusicInfo(int info_id)
 {
     /////////////////////////////////////////////////////////////////////////////////////////
     return -1;
-    if (MusicDatabase::obj().getFileInfo(info_id, DB_FileInfo::I_IsValid).toBool() == false) {
+    if (DB::object<MusicDatabase>().getFileInfo(info_id, DB_FileInfo::I_IsValid).toBool() == false) {
         qDebug() << "MusicWidget::updateMusicInfo info_id: " << info_id << " is not valid";
         return -1;
     }
@@ -168,7 +168,7 @@ Q_INVOKABLE int MusicWidget::updateMusicInfo(int info_id)
         return -2;
     }
 
-    auto info = MusicDatabase::obj().getFileInfo(info_id);
+    auto info = DB::object<MusicDatabase>().getFileInfo(info_id);
     auto watcher = new QFutureWatcher<std::tuple<QString, QJsonObject>>(this);
     connect(watcher, &QFutureWatcher<std::tuple<QString, QJsonObject>>::finished, this, [this, info_id, watcher]() {
         const auto file_path = std::get<QString>(watcher->result());
@@ -279,7 +279,7 @@ Q_INVOKABLE int MusicWidget::updateMusicInfo(int info_id)
 
 Q_INVOKABLE int MusicWidget::updateMusicInfo(const QString& path)
 {
-    return updateMusicInfo(MusicDatabase::obj().getFileInfo_Id(path));
+    return updateMusicInfo(DB::object<MusicDatabase>().getFileInfo_Id(path));
 }
 
 Q_INVOKABLE int MusicWidget::updateMusicInfo_Local()
@@ -296,7 +296,7 @@ Q_INVOKABLE int MusicWidget::updateMusicInfo_Local(int info_id)
 {
     const auto [file_path, target_tags] = updateTagData[info_id]->result();
     const auto playInfoId = getPlayInfoId();
-    const auto target_path = MusicDatabase::obj().getFileInfo(info_id, DB_FileInfo::I_FilePath).toString();
+    const auto target_path = DB::object<MusicDatabase>().getFileInfo(info_id, DB_FileInfo::I_FilePath).toString();
 
     updateTagData[info_id]->deleteLater();
     updateTagData[info_id] = nullptr;
@@ -313,7 +313,7 @@ Q_INVOKABLE int MusicWidget::updateMusicInfo_Local(int info_id)
         qDebug() << "MusicWidget::updateMusicInfo_Local moveFile failed!\n file_path: " + file_path + " target_path: " + target_path;
         return -1;
     }
-    MusicDatabase::obj().setFileInfo(info_id, MusicFileInfo::I_FileTag, QJsonDocument(target_tags).toJson());
+    DB::object<MusicDatabase>().setFileInfo(info_id, MusicFileInfo::I_FileTag, QJsonDocument(target_tags).toJson());
     fileModel.updateInfo(info_id);
     return 0;
 }
@@ -322,7 +322,7 @@ Q_INVOKABLE void MusicWidget::updateMusicInfo_StarLevel(const int data, const QL
 {
     for (const auto it : info_ids)
     {
-        MusicDatabase::obj().setFileInfo(it, MusicFileInfo::I_StarLevel, data);
+        DB::object<MusicDatabase>().setFileInfo(it, MusicFileInfo::I_StarLevel, data);
         fileModel.updateInfo(it);
     }
 }

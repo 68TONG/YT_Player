@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls.Basic as T
-import YT_Material as YT
+import YT_Material as YT_M
 
 T.Container {
     id: root
@@ -78,9 +78,9 @@ T.Container {
         if (exclusive) {
             return 2;
         }
-        if (sizeType == YT.Button.Xsmall) {
+        if (sizeType == YT_M.Button.Xsmall) {
             return 18;
-        } else if (sizeType == YT.Button.Small) {
+        } else if (sizeType == YT_M.Button.Small) {
             return 12;
         } else {
             return 8;
@@ -128,16 +128,16 @@ T.Container {
         return orientation == Qt.Vertical ? parent.width : parent.height;
     }
 
-    component M_Item: YT.Button {
+    component M_Item: YT_M.Button {
         property ButtonContainer buttonContainer: null
-        sizeType: buttonContainer ? buttonContainer.sizeType : YT.Button.Xsmall
-        styleType: buttonContainer ? buttonContainer.styleType : YT.Button.Filled
+        sizeType: buttonContainer ? buttonContainer.sizeType : YT_M.Button.Xsmall
+        styleType: buttonContainer ? buttonContainer.styleType : YT_M.Button.Filled
         styleType_Round: buttonContainer ? buttonContainer.styleType_Round : true
 
         checkable: true
         property real leftRadius: {
             if (buttonContainer.checkedButton == this) {
-                return YT.Theme.RadiusFull;
+                return YT_M.Theme.RadiusFull;
             }
             if (buttonContainer.exclusive == false) {
                 return radius;
@@ -149,7 +149,7 @@ T.Container {
         }
         property real rightRadius: {
             if (buttonContainer.checkedButton == this) {
-                return YT.Theme.RadiusFull;
+                return YT_M.Theme.RadiusFull;
             }
             if (buttonContainer.exclusive == false) {
                 return radius;
@@ -207,9 +207,9 @@ T.Container {
         }
 
         Behavior on scale {
-            SpringAnimation {
-                spring: 20
-                damping: 0.9
+            NumberAnimation {
+                easing: YT_M.Easing.SpringFastEx
+                duration: YT_M.Easing.Medium3
             }
         }
     }

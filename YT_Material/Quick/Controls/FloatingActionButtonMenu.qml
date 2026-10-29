@@ -104,7 +104,7 @@ FloatingActionButton {
         }
 
         elevation: YT.Theme.Elevation0
-        font: YT.Theme.FontSmall
+        font: YT.Font.LabelSmall
         spacing: YT.Theme.Space100
         horizontalPadding: YT.Theme.Space300
         iconSize: 24

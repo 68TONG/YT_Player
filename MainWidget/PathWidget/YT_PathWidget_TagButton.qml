@@ -4,6 +4,9 @@ import YT_Material as YT_M
 YT_M.AbstractButton {
     id: root
 
+    width: Math.min(parent ? parent.width : implicitWidth, implicitWidth)
+    height: implicitHeight
+
     indicator: null
     contentItem: Text {
         text: root.text
@@ -14,8 +17,9 @@ YT_M.AbstractButton {
         verticalAlignment: Text.AlignVCenter
     }
 
-    // font.pointSize: 8
-    implicitHeight: 24
+    font: YT_M.Font.LabelLarge
+    labelLineHeight: YT_M.Font.LabelLargeLineHeight
+    verticalPadding: YT_M.Theme.Space50
     horizontalPadding: YT_M.Theme.Space75
 
     radius: pressed ? YT_M.Theme.RadiusSmall : YT_M.Theme.RadiusMedium

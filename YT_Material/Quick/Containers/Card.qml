@@ -5,7 +5,7 @@ YT_M.AbstractButton {
     id: root
 
     property bool draging: false
-
+    
     styleType: Card.Filled
     enum StyleT {
         Elevated,

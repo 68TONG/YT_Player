@@ -6,10 +6,10 @@ MusicListModel::MusicListModel(MusicWidget& dataModel, QObject* parent)
     : QAbstractItemModel(parent)
     , dataModel(&dataModel)
 {
-    infoIds = MusicDatabase::obj().getListInfo_NameAll();
+    infoIds = DB::object<MusicDatabase>().getListInfo_NameAll();
     // auto infoID_List = YT_Info::getObject().MusicListInfo_ID_List.toList();
     // if (true) {
-    //     this->infoID_List = MusicDatabase::obj().getListInfo_NameAll();
+    //     this->infoID_List = DB::object<MusicDatabase>().getListInfo_NameAll();
     // }
     // else if (infoID_List.isEmpty()) {
     //     this->infoID_List = Music_DataBase::getObject().getListInfo_NameALL();
@@ -79,7 +79,7 @@ QString MusicListModel::infoId(const int& index) const
 bool MusicListModel::move(int index, int at_index)
 {
     this->beginMoveRows(QModelIndex(), index, index, QModelIndex(), at_index + (at_index > index));
-    int sic = MusicDatabase::obj().setListInfo_ListInfoIndex(infoIds[index], infoIds[at_index]);
+    int sic = DB::object<MusicDatabase>().setListInfo_ListInfoIndex(infoIds[index], infoIds[at_index]);
     if (sic < 0) {
         qDebug() << "MusicListModel move setListInfo_ListInfoIndex return < 0";
         this->endMoveRows();
@@ -98,7 +98,7 @@ void MusicListModel::addInfo(const QString& info_id)
     // int sic = Music_DataBase::getObject().addListInfo(info);
 
     MusicListInfo info(info_id);
-    int sic = MusicDatabase::obj().addListInfo(info);
+    int sic = DB::object<MusicDatabase>().addListInfo(info);
     if (sic < 0) {
         qDebug() << "MusicListModel addInfo addListInfo return < 0";
         return;
@@ -113,12 +113,12 @@ void MusicListModel::addInfo(const QString& info_id)
 
 void MusicListModel::eraseInfo(const QString& info_id)
 {
-    if (info_id == MusicDatabase::obj().playListInfo_Name) {
+    if (info_id == DB::object<MusicDatabase>().playListInfo_Name) {
         qDebug() << "MusicListModel setInfoName playListInfo_Name is not erase";
         return;
     }
 
-    int sic = MusicDatabase::obj().deleteListInfo(info_id);
+    int sic = DB::object<MusicDatabase>().deleteListInfo(info_id);
     if (sic < 0) {
         qDebug() << "MusicListModel eraseInfo deleteListInfo return < 0";
         return;
@@ -138,12 +138,12 @@ void MusicListModel::eraseInfo(const QString& info_id)
 
 void MusicListModel::setInfoName(const QString& info_id, const QString& name)
 {
-    if (info_id == MusicDatabase::obj().playListInfo_Name) {
+    if (info_id == DB::object<MusicDatabase>().playListInfo_Name) {
         qDebug() << "MusicListModel setInfoName playListInfo_Name is not set";
         return;
     }
 
-    int sic = MusicDatabase::obj().setListInfo(info_id, DB_ListInfo::I_Name, name);
+    int sic = DB::object<MusicDatabase>().setListInfo(info_id, DB_ListInfo::I_Name, name);
     if (sic < 0) {
         qDebug() << "MusicListModel setInfoName setListInfo error";
         return;
@@ -158,12 +158,12 @@ void MusicListModel::setInfoName(const QString& info_id, const QString& name)
 
 void MusicListModel::addFileInfo(const QString& info_id, const QList<QString>& path_list)
 {
-    MusicDatabase::obj().addListInfo_FileIds(info_id, path_list);
+    DB::object<MusicDatabase>().addListInfo_FileIds(info_id, path_list);
     if (dataModel->curListInfoID == info_id) {
         dataModel->setCurListInfoID(info_id);
     }
-    if (info_id == MusicDatabase::obj().playListInfo_Name) {
-        dataModel->playModel = MusicDatabase::obj().getListInfo_FileIds(MusicDatabase::obj().playListInfo_Name);
+    if (info_id == DB::object<MusicDatabase>().playListInfo_Name) {
+        dataModel->playModel = DB::object<MusicDatabase>().getListInfo_FileIds(DB::object<MusicDatabase>().playListInfo_Name);
         emit dataModel->playModelChanged();
     }
 }

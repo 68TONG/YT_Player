@@ -11,6 +11,7 @@ QtObject {
     property YT_ScrollBarList mainScrollBar: null
     property YT_NavigationWidget navigationWidget: null
 
+    property Item currentWidget: null
     property MusicWidget musicWidget: null
     property MusicFileModel musicFileModel: null
     property MusicListModel musicListModel: null
@@ -68,6 +69,49 @@ QtObject {
         property variant logoIconPath: ""
         readonly property YT_PathWidgetModel pathModel: widget ? widget.pathModel : null
         readonly property YT_SearchWidgetModel searchModel: widget ? widget.searchModel : null
+    }
+
+    readonly property ListModel widgetModel: ListModel {
+        ListElement {
+            title: "文件"
+            logoIconPath: YT_M.IconProvider.FolderCopy
+            widgetComponent: "Item.qml"
+        }
+        ListElement {
+            title: "音乐"
+            logoIconPath: YT_M.IconProvider.LibraryMusic
+            widgetComponent: "Item.qml"
+        }
+        ListElement {
+            title: "视频"
+            logoIconPath: null
+            widgetComponent: "Item.qml"
+        }
+        ListElement {
+            title: "图片"
+            logoIconPath: null
+            widgetComponent: "Item.qml"
+        }
+        ListElement {
+            title: "创作者"
+            logoIconPath: null
+            widgetComponent: "Item.qml"
+        }
+        ListElement {
+            title: "编辑"
+            logoIconPath: YT_M.IconProvider.EditSquare
+            widgetComponent: "Item.qml"
+        }
+        ListElement {
+            title: "设置"
+            logoIconPath: YT_M.IconProvider.Settings
+            widgetComponent: "Item.qml"
+        }
+        ListElement {
+            title: "测试"
+            logoIconPath: YT_M.IconProvider.FrameBug
+            widgetComponent: "Item.qml"
+        }
     }
 
     function formatTime(ms) {

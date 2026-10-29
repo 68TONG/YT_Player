@@ -43,12 +43,6 @@ protected:
     Q_PROPERTY(YT_SearchWidgetModel* searchModel READ getSearchModel CONSTANT)
         YT_SearchWidgetModel searchModel;
     YT_SearchWidgetModel* getSearchModel() { return &searchModel; };
-
-    Q_PROPERTY(QString curListInfoPath READ getCurListInfoPath WRITE setCurListInfoPath NOTIFY curListInfoPathChanged)
-        QString curListInfoPath;
-    QString getCurListInfoPath() const { return curListInfoPath; };
-    void setCurListInfoPath(const QString& data);
-    Q_SIGNAL void curListInfoPathChanged();
 signals:
     void operationTypeChanged();
 };

@@ -7,6 +7,10 @@ Item {
 
     property variant initProperty: null
     property real radius: initProperty ? initProperty.radius : 0
+    property real topLeftRadius: initProperty ? initProperty.topLeftRadius : 0
+    property real topRightRadius: initProperty ? initProperty.topRightRadius : 0
+    property real bottomLeftRadius: initProperty ? initProperty.bottomLeftRadius : 0
+    property real bottomRightRadius: initProperty ? initProperty.bottomRightRadius : 0
     property real outlineWidth: initProperty ? initProperty.outlineWidth : 0
     property color outlineColor: initProperty ? initProperty.outlineColor : YT_M.Theme.OutlineVariant
 
@@ -20,7 +24,35 @@ Item {
 
         readonly property real radiusFull: Math.min(width, height) / 2
         radius: root.radius == YT_M.Theme.RadiusFull ? radiusFull : root.radius
+        topLeftRadius: root.topLeftRadius == YT_M.Theme.RadiusFull ? radiusFull : root.topLeftRadius
+        topRightRadius: root.topRightRadius == YT_M.Theme.RadiusFull ? radiusFull : root.topRightRadius
+        bottomLeftRadius: root.bottomLeftRadius == YT_M.Theme.RadiusFull ? radiusFull : root.bottomLeftRadius
+        bottomRightRadius: root.bottomRightRadius == YT_M.Theme.RadiusFull ? radiusFull : root.bottomRightRadius
         Behavior on radius {
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
+            }
+        }
+        Behavior on topLeftRadius {
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
+            }
+        }
+        Behavior on topRightRadius {
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
+            }
+        }
+        Behavior on bottomLeftRadius {
+            NumberAnimation {
+                easing: YT_M.Easing.Standard
+                duration: YT_M.Easing.Short4
+            }
+        }
+        Behavior on bottomRightRadius {
             NumberAnimation {
                 easing: YT_M.Easing.Standard
                 duration: YT_M.Easing.Short4
@@ -41,23 +73,15 @@ Item {
     }
 
     property color containerColor: initProperty ? initProperty.containerColor : YT_M.Theme.Transparent
+    property color containerLayerColor: initProperty ? initProperty.containerLayerColor : YT_M.Theme.Transparent
     property list<color> containerLayerColors: {
         let ret = [];
         ret.push(Qt.rgba(hoveredColor.r, hoveredColor.g, hoveredColor.b, hoveredColor.a * 0.08));
         ret.push(Qt.rgba(dragingColor.r, dragingColor.g, dragingColor.b, dragingColor.a * 0.16));
         return ret;
     }
-    property color hoveredColor: initProperty && initProperty.hovered ? initProperty.containerLayerColor : YT_M.Theme.Transparent
-    property color dragingColor: initProperty && initProperty.draging ? initProperty.containerLayerColor : YT_M.Theme.Transparent
-
-    // overlays 按从下到上的顺序排列
-    // function compositeColors(baseColor, overlays: list<color>) {
-    //     let result = baseColor;
-    //     for (let i = 0; i < overlays.length; ++i) {
-    //         result = Qt.tint(result, overlays[i]);
-    //     }
-    //     return result;
-    // }
+    property color hoveredColor: initProperty && initProperty.hovered ? containerLayerColor : YT_M.Theme.Transparent
+    property color dragingColor: initProperty && initProperty.draging ? containerLayerColor : YT_M.Theme.Transparent
 
     function compositeColors(baseColor: color, overlays: list<color>): color {
         let result = baseColor;
@@ -79,7 +103,7 @@ Item {
 
     property int diffusionLayerCount: 0
     property bool diffusionLayerVisible: initProperty ? initProperty.down : false
-    property color diffusionLayerColor: initProperty ? initProperty.containerLayerColor : YT_M.Theme.Transparent
+    property color diffusionLayerColor: initProperty ? containerLayerColor : YT_M.Theme.Transparent
     property point diffusionLayerPoint: initProperty ? mapFromItem(initProperty, initProperty.downX, initProperty.downY) : Qt.point(0, 0)
     property variant diffusionLayerProgress: initProperty ? initProperty.autoRepeatProgress : undefined
     onDiffusionLayerVisibleChanged: {

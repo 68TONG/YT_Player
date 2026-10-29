@@ -1,7 +1,7 @@
 #include "YT_Func.h"
 
+#include <DB_DataBase.h>
 #include "YT_DataBase.h"
-#include "DB_DatabaseInstance.h"
 #include "QImageReader"
 
 #include <QCoreApplication>
@@ -924,23 +924,31 @@ QString YT_Func::outputFileCover(QString file_path)
     }
 
     const auto image_focus = getFileCoverVisualFocus(q_image);
-    const auto db_thread = DB_DatabaseInstance::obj().db.thread();
+    const auto db_thread = DB::object().db.thread();
     QMetaObject::invokeMethod(db_thread, [file_path, file_hash, image_focus] {
-        DB_DatabaseInstance::obj().setFileCoverInfo_HashValue(file_path, file_hash);
-        DB_DatabaseInstance::obj().setFileCoverInfo_VisualFocus(file_path, image_focus);
+        DB::object().setFileCoverInfo_HashValue(file_path, file_hash);
+        DB::object().setFileCoverInfo_VisualFocus(file_path, image_focus);
         }, Qt::QueuedConnection);
     return file_hash;
 }
 
+Q_INVOKABLE QVariantMap YT_Func::getFileCoverInfo(QString file_path)
+{
+    auto info = DB::object().getFileCoverInfo(file_path);
+    auto data = info["hashValue"].toString();
+    info["modelIndex"] = "image://CoverCache/" + (data.isEmpty() ? file_path : data);
+    return info;
+}
+
 Q_INVOKABLE QString YT_Func::getFileCoverPath(QString file_path)
 {
-    const auto data = DB_DatabaseInstance::obj().getFileCoverInfo_HashValue(file_path);
+    const auto data = DB::object().getFileCoverInfo_HashValue(file_path);
     return "image://CoverCache/" + (data.isEmpty() ? file_path : data);
 }
 
 Q_INVOKABLE QString YT_Func::getFileCoverPath_InfoId(int info_id)
 {
-    auto file_path = DB_DatabaseInstance::obj().getFileInfo(info_id, DB_FileInfo::I_FilePath).toString();
+    auto file_path = DB::object().getFileInfo(info_id, DB_FileInfo::I_FilePath).toString();
     if (file_path.isEmpty()) return {};
     return getFileCoverPath(file_path);
 }
@@ -1144,7 +1152,7 @@ QPointF YT_Func::getFileCoverVisualFocus(const QImage& source_image)
 
 Q_INVOKABLE QPointF YT_Func::getFileCoverVisualFocus(const QString& file_path)
 {
-    return DB_DatabaseInstance::obj().getFileCoverInfo_VisualFocus(file_path);
+    return DB::object().getFileCoverInfo_VisualFocus(file_path);
 }
 
 QRect YT_Func::getFileCoverVisualRect(double aspect_ratio, const QSize& image_size, const QPointF& focus)

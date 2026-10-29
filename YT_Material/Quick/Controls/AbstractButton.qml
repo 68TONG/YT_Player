@@ -30,6 +30,8 @@ T.AbstractButton {
     property variant iconSource
 
     property color labelColor
+    property real labelLineHeight: 1.0
+
     property color containerColor
     property color containerLayerColor
 
@@ -97,6 +99,8 @@ T.AbstractButton {
         rightPadding: isIndicator && root.display == Qt.RightEdge ? root.indicator.width + root.spacing : 0
         horizontalAlignment: Text.AlignLeft
         verticalAlignment: Text.AlignVCenter
+        lineHeight: root.labelLineHeight
+        lineHeightMode: lineHeight != 1.0 ? Text.FixedHeight : Text.ProportionalHeight
     }
 
     background: YT_M.Background {

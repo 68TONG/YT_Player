@@ -1,13 +1,41 @@
 #pragma once
 
-#include <DB_Info.h>
-#include <YT_Func.h>
-#include <QCoreApplication>
+#include "DB_Info.h"
+#include "YT_Func.h"
+
 #include <QThread>
+#include <QThreadStorage>
+#include <QCoreApplication>
+
+template <typename FileInfo_T, typename ListInfo_T>
+class DB_Database;
+
+namespace DB {
+    template <typename Derived = DB_Database<DB_FileInfo, DB_ListInfo>>
+    Derived& object()
+    {
+        static Derived obj;
+        return obj;
+    }
+    template <typename Derived = DB_Database<DB_FileInfo, DB_ListInfo>>
+    Derived& objectForThread()
+    {
+        static QThreadStorage<Derived*> databases;
+        if (databases.hasLocalData() == false) {
+            databases.setLocalData(new Derived(QThread::currentThread()));
+        }
+        return *databases.localData();
+    }
+}
 
 template <typename FileInfo_T, typename ListInfo_T>
 class DB_Database
 {
+    template <typename Derived>
+    friend Derived& DB::object();
+    template <typename Derived>
+    friend Derived& DB::objectForThread();
+
     static_assert(std::is_base_of<DB_FileInfo, FileInfo_T>::value, "FileInfo_T must inherit from Base");
     static_assert(std::is_base_of<DB_ListInfo, ListInfo_T>::value, "ListInfo_T must inherit from Base");
     static QString connectionNameForThread(QThread* thread)
@@ -57,6 +85,7 @@ protected:
         }
         db = QSqlDatabase::database(connectionName);
     }
+public:
     virtual ~DB_Database()
     {
         if (removeConnectionOnDestruction == false
@@ -71,7 +100,7 @@ protected:
         db = QSqlDatabase();
         QSqlDatabase::removeDatabase(connectionName);
     }
-
+protected:
     class TempIdsTable
     {
     public:
@@ -108,7 +137,6 @@ protected:
         const QString tableName;
     };
 public:
-
     QSqlDatabase db;
     virtual FileInfo_T initFileInfo(QSqlQuery& query) {
         FileInfo_T info;
@@ -177,6 +205,50 @@ public:
         while (query.next()) {
             FileInfo_T info = initFileInfo(query);
             info_list.insert(info.Id, info);
+        }
+        return info_list;
+    }
+
+    virtual DB_FileInfo::Ptr getFileInfoPtr(int info_id)
+    {
+        QString sql = QString("SELECT Id, filePath, fileTitle, fileTag FROM FileInfo WHERE Id = ?");
+
+        QSqlQuery query(db);
+        query.prepare(sql);
+        query.addBindValue(info_id);
+        if (query.exec() == false || query.next() == false) {
+            qDebug() << "DB_Database getFileInfoPtr failed - info_id:" << info_id
+                << "error:" << query.lastError().text();
+            return {};
+        }
+
+        auto it = QSharedPointer<FileInfo_T>::create();
+        initFileInfo(*(it.get()), query);
+        return it;
+    }
+
+    virtual QHash<int, DB_FileInfo::Ptr> getFileInfoPtr(const QList<int>& info_ids)
+    {
+        TempIdsTable temp_table(db, info_ids);
+        QString sql = QString(R"(
+            SELECT F_Info.Id, F_Info.filePath, F_Info.fileTitle, F_Info.fileTag 
+            FROM FileInfo AS F_Info
+            JOIN %1 AS T_Ids ON F_Info.Id = T_Ids.Id
+        )").arg(temp_table.tableName);
+
+        QSqlQuery query(db);
+        query.prepare(sql);
+        if (query.exec() == false) {
+            qDebug() << "DB_Database getFileInfoPtr failed - info_ids:" << info_ids
+                << "error:" << query.lastError().text();
+            return {};
+        }
+
+        QHash<int, DB_FileInfo::Ptr> info_list;
+        while (query.next()) {
+            auto it = QSharedPointer<FileInfo_T>::create();
+            initFileInfo(*(it.get()), query);
+            info_list.insert(query.value(DB_FileInfo::I_Id).toInt(), it);
         }
         return info_list;
     }
@@ -686,15 +758,15 @@ public:
         return info_list;
     }
 
-    QList<int> getCreatorInfo_FileIds()
+    QList<int> getCreatorInfo_FileIds(int count = -1)
     {
-        QString sql = QString("SELECT fileId FROM %1")
-            .arg(DB::NetworkFileInfo);
+        QString sql = QString("SELECT fileId FROM NetworkFileInfo LIMIT :count");
 
         QSqlQuery query(db);
         query.prepare(sql);
+        query.bindValue(":count", count);
         if (query.exec() == false) {
-            qDebug() << "YT_FileDatabase getCreatorInfo_FileIds failed"
+            qDebug() << "DB_FileDatabase getCreatorInfo_FileIds failed"
                 << "error: " << query.lastError().text();
             return {};
         }
@@ -706,16 +778,16 @@ public:
         return info_ids;
     }
 
-    QList<int> getCreatorInfo_FileIds(QString info_id)
+    QList<int> getCreatorInfo_FileIds(QString info_id, int count = -1)
     {
-        QString sql = QString("SELECT fileId FROM %1 WHERE creatorId = :creator_id")
-            .arg(DB::NetworkFileInfo);
+        QString sql = QString("SELECT fileId FROM NetworkFileInfo WHERE creatorId = :creator_id LIMIT :count");
 
         QSqlQuery query(db);
         query.prepare(sql);
         query.bindValue(":creator_id", info_id);
+        query.bindValue(":count", count);
         if (query.exec() == false) {
-            qDebug() << "YT_FileDatabase getFileInfo_CreatorId failed - creator_id: " << info_id
+            qDebug() << "DB_FileDatabase getFileInfo_CreatorId failed - creator_id: " << info_id
                 << " error:" << query.lastError().text();
             return {};
         }
@@ -725,6 +797,26 @@ public:
             info_ids.append(query.value(0).toInt());
         }
         return info_ids;
+    }
+
+    virtual QVariantMap getFileCoverInfo(QString file_path)
+    {
+        QString sql = QString("SELECT hashValue, visualFocusX, visualFocusY FROM FileCoverInfo WHERE filePath = ?");
+
+        QSqlQuery query(db);
+        query.prepare(sql);
+        query.addBindValue(file_path);
+        if (query.exec() == false) {
+            qDebug() << "DB_Database getFileCoverInfo failed - path:" << file_path
+                << "error:" << query.lastError().text();
+            return {};
+        }
+        if (query.next() == false) return {};
+
+        return {
+            { "hashValue", query.value(0).toString() },
+            { "visualFocus", QPointF(query.value(1).toDouble(), query.value(2).toDouble()) }
+        };
     }
 
     virtual QString getFileCoverInfo_HashValue(QString file_path)

@@ -1,0 +1,55 @@
+{
+    "BackgroundColor": {
+        "Alpha": 255,
+        "Blue": 21,
+        "Green": 21,
+        "Red": 21
+    },
+    "FontColor": {
+        "Alpha": 255,
+        "Blue": 138,
+        "Green": 138,
+        "Red": 138
+    },
+    "FontFocusColor": {
+        "Alpha": 255,
+        "Blue": 0,
+        "Green": 215,
+        "Red": 255
+    },
+    "ItemColor": {
+        "Alpha": 255,
+        "Blue": 38,
+        "Green": 38,
+        "Red": 38
+    },
+    "ItemFocusColor": {
+        "Alpha": 255,
+        "Blue": 72,
+        "Green": 72,
+        "Red": 72
+    },
+    "ItemSize": {
+        "Height": 30,
+        "Width": 180
+    },
+    "ItemSizeBig": {
+        "Height": 50,
+        "Width": 180
+    },
+    "ItemSizeSmall": {
+        "Height": 20,
+        "Width": 180
+    },
+    "Margin": 7,
+    "MarginBig": 15,
+    "MarginSmall": 3,
+    "MusicListInfo_ID_List": [
+    ],
+    "Radius": 7,
+    "RadiusBig": 15,
+    "RadiusSmall": 3,
+    "Spacing": 7,
+    "SpacingBig": 15,
+    "SpacingSmall": 3
+}

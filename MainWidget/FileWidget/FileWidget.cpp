@@ -1,6 +1,6 @@
 #include "FileWidget.h"
 
-#include "DB_DatabaseInstance.h"
+#include <DB_DataBase.h>
 
 FileWidget::FileWidget(QQuickItem* parent)
     : QQuickItem{ parent }, pathModel(this, "FileWidget")
@@ -81,42 +81,19 @@ void FileWidget::pathModelFunc()
 
     if (pathModel.srcData[0] == "CreatorInfo") {
         if (path_count == 1) {
-            itemModel.setInfoIds(DB_DatabaseInstance::obj().getCreatorInfo_FileIds());
+            itemModel.setInfoIds(DB::object().getCreatorInfo_FileIds());
         }
-        else if (DB_DatabaseInstance::obj().getCreatorInfo_NameAll().contains(pathModel.srcData[1])) {
-            itemModel.setInfoIds(DB_DatabaseInstance::obj().getCreatorInfo_FileIds(pathModel.srcData[1]));
+        else if (DB::object().getCreatorInfo_NameAll().contains(pathModel.srcData[1])) {
+            itemModel.setInfoIds(DB::object().getCreatorInfo_FileIds(pathModel.srcData[1]));
             for (int i = 2; i < pathModel.srcData.count(); i++) {
                 itemModel.searchInfoIds(pathModel.srcData[i]);
             }
         }
         else {
-            itemModel.setInfoIds(DB_DatabaseInstance::obj().getCreatorInfo_FileIds());
+            itemModel.setInfoIds(DB::object().getCreatorInfo_FileIds());
             for (int i = 1; i < pathModel.srcData.count(); i++) {
                 itemModel.searchInfoIds(pathModel.srcData[i]);
             }
         }
     }
 }
-
-void FileWidget::setCurListInfoPath(const QString& data)
-{
-    if (curListInfoPath == data) return;
-
-    curListInfoPath = data;
-    emit curListInfoPathChanged();
-
-    pathModel.setSrcData(data);
-}
-
-// void FileWidget::setCurModel(FileItemModel*& data) {
-//     if (curModel == data)
-//         return;
-//     if (curModel)
-//         disconnect(curModel, &FileItemModel::currentDirChanged, this, &FileWidget::curModelPathChanged);
-//     if (data)
-//         connect(data, &FileItemModel::currentDirChanged, this, &FileWidget::curModelPathChanged);
-
-//     curModel = data;
-//     curModelPathChanged();
-//     emit curModelChanged();
-// }
