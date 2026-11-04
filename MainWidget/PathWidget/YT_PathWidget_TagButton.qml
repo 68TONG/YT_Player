@@ -5,7 +5,7 @@ YT_M.AbstractButton {
     id: root
 
     width: Math.min(parent ? parent.width : implicitWidth, implicitWidth)
-    height: implicitHeight
+    height: YT_M.Font.LabelLargeLineHeight + topPadding + bottomPadding
 
     indicator: null
     contentItem: Text {
@@ -18,7 +18,6 @@ YT_M.AbstractButton {
     }
 
     font: YT_M.Font.LabelLarge
-    labelLineHeight: YT_M.Font.LabelLargeLineHeight
     verticalPadding: YT_M.Theme.Space50
     horizontalPadding: YT_M.Theme.Space75
 
@@ -28,10 +27,4 @@ YT_M.AbstractButton {
     containerLayerColor: enabled ? labelColor : YT_M.Theme.Transparent
 
     visible: opacity != 0.0
-    Behavior on opacity {
-        NumberAnimation {
-            easing: YT_M.Easing.Standard
-            duration: YT_M.Easing.Short3
-        }
-    }
 }

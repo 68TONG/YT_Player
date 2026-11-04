@@ -74,8 +74,7 @@ Item {
     }
 
     function generateMd3SpringValue() {
-        const springValue = YT_M.AnimationTemplate.getSpringValue(Number(md3DampingInput.text),
-                                                                  Number(md3StiffnessInput.text));
+        const springValue = {};
         damping = springValue.damping;
         spring = springValue.spring;
         mass = springValue.mass;

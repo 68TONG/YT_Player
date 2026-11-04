@@ -1,9 +1,12 @@
 #pragma once
 
 #include "YT_Global.h"
-#include "cpp/scheme/scheme_content.h"
 #include <QColor>
 #include <QQuickItem>
+
+namespace material_color_utilities {
+class DynamicScheme;
+}
 
 class YT_EXPORT YT_Theme : public QObject
 {
@@ -430,8 +433,10 @@ public:
     uint16_t getBreakPointType() const;
     Q_SIGNAL void breakPointTypeChanged();
 
-    Q_PROPERTY(uint16_t breakPointValue MEMBER breakPointValue NOTIFY breakPointValueChanged)
+    Q_PROPERTY(uint16_t breakPointValue READ getBreakPointValue WRITE setBreakPointValue NOTIFY breakPointValueChanged)
         uint16_t breakPointValue = 0;
+    uint16_t getBreakPointValue() const;
+    void setBreakPointValue(const uint16_t data);
     Q_SIGNAL void breakPointValueChanged();
 
     Q_PROPERTY(QList<uint16_t> breakPointList MEMBER breakPointList NOTIFY breakPointListChanged)

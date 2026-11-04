@@ -6,32 +6,73 @@ import YT_Material as YT_M
 
 Flow {
     id: root
-
-    YT_M.Button {
-        text: "打开菜单"
-        onClicked: {
-            recentFilesInstantiator.active = true;
-            menu.open();
-        }
+    spacing: 10
+    YT_M.LoadingIndicator {
+        id: shape
+        implicitSize: 200
     }
+    YT_M.LoadingIndicator {
+        implicitSize: 200
+        containerVisible: true
+    }
+    YT_M.LoadingIndicator {
+        implicitSize: 200
+        running: false
+        containerVisible: true
+    }
+    YT_M.LoadingIndicator {
+        id: load_item
+        implicitSize: 200
+        running: midpointSlider.pressed == false
+        containerVisible: true
+    }
+    YT_M.ProgressIndicator {}
+    YT_M.ProgressIndicator {
+        implicitSize: 8
+    }
+    Column {
+        width: 320
+        spacing: 8
 
-    YT_M.Menu {
-        id: menu
-        title: qsTr("File")
-        height: 500
-
-        Instantiator {
-            id: recentFilesInstantiator
-            model: FileModel.properties
-            delegate: MenuItem {
-                required property string modelData
-                text: modelData
-            }
-
-            // onObjectAdded: (index, object) => menu.insertItem(index, object)
-            onObjectAdded: (index, object) => menu.addItem(object)
-            onObjectRemoved: (index, object) => menu.removeItem(object)
+        Text {
+            color: YT_M.Theme.OnSurface
+            text: "Slider - minimum (" + minimumSlider.value + ")"
         }
-        onAboutToHide: recentFilesInstantiator.active = false
+        YT_M.Slider {
+            id: minimumSlider
+            width: parent.width
+            from: 0
+            to: 100
+            value: 0
+            stepSize: 10
+            snapMode: Slider.SnapAlways
+        }
+
+        Text {
+            color: YT_M.Theme.OnSurface
+            text: "Slider - midpoint (" + midpointSlider.value + ")"
+        }
+        YT_M.Slider {
+            id: midpointSlider
+            width: parent.width
+            from: 0.0
+            to: 1.0
+            onValueChanged: {
+                load_item.progress = value;
+            }
+        }
+
+        Text {
+            color: YT_M.Theme.OnSurface
+            text: "Slider - maximum (" + maximumSlider.value + ")"
+        }
+        YT_M.Slider {
+            id: maximumSlider
+            width: parent.width
+            from: 0
+            to: 100
+            value: 100
+            stepSize: 10
+        }
     }
 }

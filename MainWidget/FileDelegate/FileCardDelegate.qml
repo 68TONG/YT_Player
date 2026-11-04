@@ -25,7 +25,15 @@ GridView {
     property Item expandItem: null
     property real imageImplicitHeight: 200 * (9 / 16)
     cellWidth: width / Math.floor(width / 200)
-    cellHeight: (200 * 9 / 16) + (24 * 3) + (1) + (YT_M.Theme.Space100 * 2) + (YT_M.Theme.Space25 * 3)
+    cellHeight: {
+        let ret = imageImplicitHeight;
+        ret += YT_M.Theme.Space150 + YT_M.Theme.Space150;
+        ret += YT_M.Font.TitleMediumLineHeight;
+        ret += YT_M.Font.LabelMediumLineHeight + YT_M.Theme.Space50 * 2;
+        ret += YT_M.Font.LabelLargeLineHeight + YT_M.Theme.Space50 * 2 + 1 + YT_M.Theme.Space25;
+        ret += YT_M.Theme.Space25 * 2;
+        return ret;
+    }
     delegate: YT_M.Card {
         id: rootDelegate
         required property int index
@@ -59,6 +67,7 @@ GridView {
             NumberAnimation {
                 id: itemCardDelegate_ExpandAnimation
                 easing: YT_M.Easing.SpringFastEx
+                // duration: 2000
                 duration: YT_M.Easing.Medium3
             }
         }
@@ -97,6 +106,7 @@ GridView {
             }
 
             YT_PathWidget_TagFlow {
+                asynchronous: true
                 expanded: rootDelegate.expanded
                 width: parent.width
                 height: implicitHeight
@@ -105,18 +115,19 @@ GridView {
                     required property string modelData
                     text: FileModel.data_Index(rootDelegate.index, modelData)
                     font: YT_M.Font.LabelMedium
-                    labelLineHeight: YT_M.Font.LabelMediumLineHeight
+                    height: YT_M.Font.LabelMediumLineHeight + topPadding + bottomPadding
                 }
             }
 
             Instantiator {
-                // asynchronous: true
+                asynchronous: true
                 model: rootDelegate.expanded ? root.propertiesEx : root.propertiesEx.slice(0, 1)
                 delegate: Column {
                     required property string modelData
                     width: parent ? parent.width : 0
                     height: implicitHeight
                     spacing: rootDelegate.spacing
+                    opacity: Math.pow(Math.max(0, Math.min(1, (rootDelegate.height - y) / height)), 6.0)
                     Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
                         width: parent.width - YT_M.Theme.Space200
@@ -173,5 +184,35 @@ GridView {
         //         root.curListInfoPath = root.itemModel.dataIndex(itemCardDelegate.index, FileItemModel.FilePath_Role);
         //     }
         // }
+    }
+
+    populate: Transition {
+        SequentialAnimation {
+            PropertyAction {
+                property: "opacity"
+                value: 0.0
+            }
+            PauseAnimation {
+                duration: {
+                    const data = root.populate.ViewTransition;
+                    Math.pow(data.index - data.targetIndexes[0], 0.4) * 120;
+                }
+            }
+            ParallelAnimation {
+                NumberAnimation {
+                    property: "opacity"
+                    from: 0.0
+                    to: 1.0
+                    duration: YT_M.Easing.Medium3
+                    easing: YT_M.Easing.LegacyAccelerate
+                }
+                NumberAnimation {
+                    property: "y"
+                    from: root.populate.ViewTransition.destination.y + 120
+                    duration: YT_M.Easing.Medium3
+                    easing: YT_M.Easing.Legacy
+                }
+            }
+        }
     }
 }

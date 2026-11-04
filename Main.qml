@@ -2,28 +2,18 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Qt.labs.platform
-import QWindowKit as QWK
 import YT_Material as YT_M
 import HuskarUI.Basic
 import YT_Player
 
-Window {
+YT_M.Window {
     id: mainWindow
     width: 900
     height: 600
-    visible: false
-    color: YT_M.Theme.Background
-    onWidthChanged: YT_M.Theme.breakPointValue = width
-
-    QWK.WindowAgent {
-        id: windowAgent
-    }
-
     Component.onCompleted: {
+        initQuickWindowAgent();
+        connectThemeBreakPoint();
         YT_M.Theme.breakPointList = [YT_M.Theme.BreakPointCompact, YT_M.Theme.BreakPointExpanded, YT_M.Theme.BreakPointExtraLarge];
-        windowAgent.setup(mainWindow);
-        // windowAgent.setTitleBar(titleBar);
-        mainWindow.visible = true;
     }
 
     Item {

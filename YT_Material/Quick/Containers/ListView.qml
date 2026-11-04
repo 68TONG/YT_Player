@@ -1,52 +1,52 @@
 import QtQuick
-import YT_Material as YT
+import YT_Material as YT_M
 
 ListView {
-    id: rootView
+    id: root
 
-    spacing: YT.Theme.Space25
+    spacing: YT_M.Theme.Space25
     highlightFollowsCurrentItem: false
     displaced: Transition {
         NumberAnimation {
             properties: "x,y"
-            duration: 300
-            easing.type: Easing.OutCubic
+            duration: YT_M.Easing.Medium3
+            easing: YT_M.Easing.Standard
+        }
+    }
+    move: Transition {
+        NumberAnimation {
+            properties: "x,y"
+            duration: YT_M.Easing.Medium3
+            easing: YT_M.Easing.Standard
         }
     }
     populate: Transition {
-        id: rootViewPopulate
-        property int animationIndex: ViewTransition.index - ViewTransition.targetIndexes[0]
-        onAnimationIndexChanged: (100 / (rootViewPopulate.animationIndex + 1)) + 50
         SequentialAnimation {
             PropertyAction {
                 property: "opacity"
                 value: 0.0
             }
             PauseAnimation {
-                duration: Math.pow(rootViewPopulate.animationIndex, 0.4) * 120;
+                duration: {
+                    const data = root.populate.ViewTransition;
+                    Math.pow(data.index - data.targetIndexes[0], 0.4) * 120;
+                }
             }
             ParallelAnimation {
                 NumberAnimation {
                     property: "opacity"
                     from: 0.0
                     to: 1.0
-                    duration: 300
-                    easing.type: Easing.OutCubic
+                    duration: YT_M.Easing.Medium3
+                    easing: YT_M.Easing.LegacyAccelerate
                 }
                 NumberAnimation {
                     property: "y"
-                    from: rootViewPopulate.ViewTransition.destination.y + 100
-                    duration: 300
-                    easing.type: Easing.OutCubic
+                    from: root.populate.ViewTransition.destination.y + 120
+                    duration: YT_M.Easing.Medium3
+                    easing: YT_M.Easing.Legacy
                 }
             }
-        }
-    }
-    move: Transition {
-        NumberAnimation {
-            properties: "x,y"
-            duration: 300
-            easing.type: Easing.OutCubic
         }
     }
 }

@@ -737,3 +737,16 @@ uint16_t YT_Theme::getBreakPointType() const
 {
     return breakPointType;
 }
+
+uint16_t YT_Theme::getBreakPointValue() const
+{
+    return breakPointValue;
+}
+
+void YT_Theme::setBreakPointValue(const uint16_t data)
+{
+    if (breakPointValue == data)
+        return;
+    breakPointValue = data;
+    emit breakPointValueChanged();
+}

@@ -2,17 +2,11 @@ cmake_minimum_required(VERSION 3.30)
 
 project(YT_Player VERSION 1.0 LANGUAGES CXX)
 
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(YT_Library "C:/TONG/IT")
 
-# set(YT_Material_DIR "C:/TONG/Code/YT_Material/build/install/lib/cmake/YT_Material")
-# find_package(YT_Material REQUIRED)
-
-set(OpenCV_DIR "C:/TONG/IT/opencv")
-find_package(OpenCV REQUIRED)
-
+find_package(OpenCV REQUIRED NO_DEFAULT_PATH 
+    PATHS "C:/TONG/IT/opencv")
 find_package(HuskarUI REQUIRED)
 
 find_package(Qt6 REQUIRED COMPONENTS Sql)
@@ -74,8 +68,9 @@ qt_add_qml_module(
         "main.cpp" 
         ${PROJECT_SOURCE_FILE} 
     DEPENDENCIES 
-        QtQuick
         QtQml
+        QtQuick
+        TARGET YT_Material
 )
 
 file(GLOB_RECURSE PROJECT_UI_IMAGE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "YT_Resource/Ui_Image/*")
@@ -112,27 +107,17 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Multimedia)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Concurrent)
 target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::QuickControls2)
 
-# set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY QT_QML_IMPORT_PATH "${YT_Material_QML_IMPORT_PATH}")
-# target_link_libraries(${PROJECT_NAME} PRIVATE YT_Material::YT_Material)
-
-set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY QT_QML_IMPORT_PATH "${CMAKE_CURRENT_BINARY_DIR}/YT_Material")
 target_link_libraries(${PROJECT_NAME} PRIVATE YT_Material)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
-file(COPY "${OpenCV_DIR}/x64/mingw/bin/libopencv_world510.dll" DESTINATION ${PROJECT_BINARY_DIR})
-
 target_link_libraries(${PROJECT_NAME} PRIVATE MediaOperations)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/chinese-util-cpp/lib/libchinese_util.a")
 target_include_directories(${PROJECT_NAME} PRIVATE "${YT_Library}/chinese-util-cpp/include")
 
-# target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/SQLite/sqlite3.dll")
-# target_include_directories(${PROJECT_NAME} PRIVATE "${YT_Library}/SQLite")
+target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS})
+file(COPY "${OpenCV_DIR}/x64/mingw/bin/libopencv_world510.dll" DESTINATION ${PROJECT_BINARY_DIR})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE HuskarUI::Basic)
-# target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/HuskarUI/bin/HuskarUIBasic.dll")
-# target_link_libraries(${PROJECT_NAME} PRIVATE "${YT_Library}/HuskarUI/bin/HuskarUIImpl.dll")
-# target_include_directories(${PROJECT_NAME} PRIVATE "${YT_Library}/HuskarUI/include")
+
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -155,17 +140,16 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 
 include(GNUInstallDirs)
-install(FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/model.onnx"
-    "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/README.md"
-    DESTINATION "${CMAKE_INSTALL_BINDIR}/YT_PlayerData/Models/AnimeFace"
-)
 install(TARGETS ${PROJECT_NAME}
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/model.onnx"
+    "${CMAKE_CURRENT_SOURCE_DIR}/YT_Resource/Models/AnimeFace/README.md"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}/YT_PlayerData/Models/AnimeFace"
+)
 qt_generate_deploy_qml_app_script(
     TARGET ${PROJECT_NAME}
     OUTPUT_SCRIPT YT_QML_Script
